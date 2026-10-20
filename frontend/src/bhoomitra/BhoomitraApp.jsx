@@ -179,6 +179,48 @@ function formatInputDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+function dateDaysAgo(today, daysAgo) {
+  const date = new Date(today);
+  date.setDate(date.getDate() - daysAgo);
+  return formatInputDate(date);
+}
+
+function createStarterPlantPhotos(today) {
+  return [
+    {
+      id: "plant-photo-1",
+      date: dateDaysAgo(today, 8),
+      photoUrl: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=700&q=80",
+      healthy: false,
+      diseaseNameKey: "leafSpot",
+      confidence: 72,
+      descriptionKey: "leafSpotDescription",
+      treatmentKeys: ["removeAffectedLeaves", "avoidWetFoliage", "monitorNewGrowth"],
+      comparisonKey: ""
+    },
+    {
+      id: "plant-photo-2",
+      date: dateDaysAgo(today, 3),
+      photoUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=700&q=80",
+      healthy: true,
+      diseaseNameKey: "noDiseaseDetected",
+      confidence: 91,
+      descriptionKey: "healthyDescription",
+      treatmentKeys: ["keepMonitoring", "waterAtSoilLevel", "maintainAirflow"],
+      comparisonKey: "improved"
+    }
+  ];
+}
+
+function getDaysUntilPlantPhoto(today, photos) {
+  const latestPhoto = [...photos].sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (!latestPhoto) return 0;
+  const lastPhotoDate = new Date(`${latestPhoto.date}T00:00:00`);
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const elapsedDays = Math.floor((todayDate.getTime() - lastPhotoDate.getTime()) / 86400000);
+  return Math.max(0, 5 - elapsedDays);
+}
+
 function loadCropEntries() {
   const storedEntries = readStored("bhoomitra-crop-log", starterEntries);
   return storedEntries.map((entry) => ({
@@ -200,6 +242,7 @@ function getEntryText(entry, field, t) {
 
 function BhoomitraApp() {
   const [today] = useState(() => new Date());
+  const [plantPhotos, setPlantPhotos] = useState(() => createStarterPlantPhotos(today));
   const [language, setLanguage] = useState(() => {
     migrateLegacyStorage();
     const savedLanguage = localStorage.getItem("bhoomitra-language");
@@ -317,6 +360,10 @@ function BhoomitraApp() {
     setBatches((current) => [batch, ...current]);
   }
 
+  function addPlantPhoto(photo) {
+    setPlantPhotos((current) => [photo, ...current]);
+  }
+
   function requestWeatherLocation() {
     if (!navigator.geolocation) {
       setWeatherState({ status: "unavailable", current: null, error: "" });
@@ -378,9 +425,7 @@ function BhoomitraApp() {
   }
 
   function saveFeedback(answer) {
-    const response = { answer, date: new Date().toISOString() };
-    setFeedback(response);
-    console.log("Bhoomitra advisory feedback:", response);
+    setFeedback({ answer, date: new Date().toISOString() });
   }
 
   return (
@@ -389,11 +434,12 @@ function BhoomitraApp() {
         <Route index element={<LoginPage />} />
         <Route path="trace/:batchId" element={<PublicTracePage batches={batches} />} />
         <Route element={<FarmerLayout today={today} />}>
-          <Route path="dashboard" element={<Dashboard today={today} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} />} />
+          <Route path="dashboard" element={<Dashboard today={today} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={getDaysUntilPlantPhoto(today, plantPhotos)} />} />
           <Route path="crop-log" element={<CropLog today={today} entries={entries} onAddEntry={addEntry} />} />
           <Route path="advisory" element={<Advisory feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} />} />
+          <Route path="plant-health" element={<PlantHealth today={today} photos={plantPhotos} onAddPhoto={addPlantPhoto} />} />
           <Route path="traceability" element={<Traceability batches={batches} onAddBatch={addBatch} />} />
-          <Route path="*" element={<Dashboard today={today} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} />} />
+          <Route path="*" element={<Dashboard today={today} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={getDaysUntilPlantPhoto(today, plantPhotos)} />} />
         </Route>
       </Routes>
     </LanguageContext.Provider>
@@ -409,14 +455,20 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [formError, setFormError] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleSubmit(event) {
     event.preventDefault();
     setFormError("");
+    setAuthNotice("");
     if (isRegistering && password !== confirmPassword) {
       setFormError(t("passwordMismatch"));
+      setIsSubmitting(false);
       return;
     }
+    setIsSubmitting(true);
     const farmerName = isRegistering
       ? name.trim()
       : localStorage.getItem("bhoomitra-farmer-name") || email.split("@")[0] || t("farmer");
@@ -438,14 +490,14 @@ function LoginPage() {
         <div className="ks-login-language"><LanguageSelect language={language} onChange={setLanguage} t={t} /></div>
         <span className="ks-back-link">{t("workspace").toUpperCase()}</span>
         <div className="ks-brand ks-login-brand"><span className="ks-brand-icon">B</span>Bhoomitra</div>
-        <p className="ks-eyebrow">{t("welcomeFarmer").toUpperCase()}</p>
+        <p className="ks-eyebrow">{t("welcomeFarmer")}</p>
         <h2>{isRegistering ? t("createAccount") : t("signIn")}</h2>
         <p className="ks-login-description">
           {isRegistering ? t("registerDescription") : t("demoLoginDescription")}
         </p>
         <form onSubmit={handleSubmit} className="ks-login-form">
           {isRegistering && (
-            <>
+            <div className="ks-login-field">
               <label htmlFor="farmer-name">{t("yourName")}</label>
               <input
                 id="farmer-name"
@@ -457,32 +509,75 @@ function LoginPage() {
                 required
                 maxLength={80}
               />
-            </>
+            </div>
           )}
-          <label htmlFor="farmer-email">{t("emailAddress")}</label>
-          <input
-            id="farmer-email"
-            name="email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder={t("enterEmail")}
-            autoComplete="email"
-            required
-          />
-          <label htmlFor="farmer-password">{t("password")}</label>
-          <input
-            id="farmer-password"
-            name="password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete={isRegistering ? "new-password" : "current-password"}
-            minLength={8}
-            required
-          />
+          <div className="ks-login-field">
+            <label htmlFor="farmer-email">{t("emailAddress")}</label>
+            <input
+              id="farmer-email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder={t("enterEmail")}
+              autoComplete="email"
+              required
+            />
+          </div>
+          <div className="ks-login-field">
+            <label htmlFor="farmer-password">{t("password")}</label>
+            <div className="ks-password-input">
+              <input
+                id="farmer-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete={isRegistering ? "new-password" : "current-password"}
+                minLength={8}
+                required
+              />
+              <button
+                type="button"
+                className="ks-password-toggle"
+                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+                onClick={() => setShowPassword((visible) => !visible)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  {showPassword ? (
+                    <>
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                      <path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5 0 8.5 4.5 9.5 7-.4 1-1.2 2-2.2 2.9" />
+                      <path d="M6.2 6.2C4.2 7.5 2.9 9.5 2.5 12c.7 1.9 2.9 4.3 5.7 5.4" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  )}
+                </svg>
+              </button>
+            </div>
+          </div>
+          {!isRegistering && (
+            <div className="ks-login-options">
+              <label className="ks-remember-option">
+                <input type="checkbox" name="rememberMe" />
+                <span>{t("rememberMe")}</span>
+              </label>
+              <button
+                type="button"
+                className="ks-forgot-password"
+                onClick={() => setAuthNotice(t("passwordResetDemo"))}
+              >
+                {t("forgotPassword")}
+              </button>
+            </div>
+          )}
           {isRegistering && (
-            <>
+            <div className="ks-login-field">
               <label htmlFor="farmer-confirm-password">{t("confirmPassword")}</label>
               <input
                 id="farmer-confirm-password"
@@ -494,11 +589,13 @@ function LoginPage() {
                 minLength={8}
                 required
               />
-            </>
+            </div>
           )}
           {formError && <p className="ks-form-error" role="alert">{formError}</p>}
-          <button type="submit" className="ks-primary-button">
-            {isRegistering ? t("createAccount") : t("signIn")} <span>→</span>
+          {authNotice && <p className="ks-login-notice" role="status">{authNotice}</p>}
+          <button type="submit" className="ks-primary-button" disabled={isSubmitting}>
+            {isSubmitting && <span className="ks-login-spinner" aria-hidden="true" />}
+            {isSubmitting ? t("loading") : isRegistering ? t("createAccount") : t("signIn")}
           </button>
         </form>
         <p className="ks-auth-switch">
@@ -510,7 +607,13 @@ function LoginPage() {
             {isRegistering ? t("signIn") : t("createAccount")}
           </button>
         </p>
-        <p className="ks-demo-note"><span /> {t("demoAuthNotice")}</p>
+        <p className="ks-demo-note">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="10" cy="10" r="8" />
+            <path d="M10 9v5M10 6.3v.2" />
+          </svg>
+          {t("demoAuthNotice")}
+        </p>
       </section>
     </main>
   );
@@ -549,6 +652,7 @@ function FarmerLayout({ today }) {
           <NavLink to="/dashboard"><span>⌂</span> {t("overview")}</NavLink>
           <NavLink to="/crop-log"><span>☷</span> {t("cropLog")}</NavLink>
           <NavLink to="/advisory"><span>✳</span> {t("advisory")}</NavLink>
+          <NavLink to="/plant-health"><span className="ks-nav-leaf" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 4c-8 0-14 3.5-14 10a6 6 0 0 0 6 6c6.5 0 8-8 8-16Z" /><path d="M4 21c3-5 7-8 12-11" /></svg></span> {t("plantHealth")}</NavLink>
           <NavLink to="/traceability"><span>▦</span> {t("traceability")}</NavLink>
         </nav>
         <div className="ks-sidebar-bottom">
@@ -589,7 +693,8 @@ function Dashboard({
   weatherState,
   weatherLocation,
   onRequestLocation,
-  onSelectLocation
+  onSelectLocation,
+  daysUntilPlantPhoto
 }) {
   const { language, t } = useLanguage();
   const daysSinceSowing = Math.max(
@@ -607,6 +712,14 @@ function Dashboard({
         </div>
         <Link to="/crop-log" className="ks-primary-button ks-heading-button">＋ {t("logFarmActivity")}</Link>
       </div>
+
+      {daysUntilPlantPhoto === 0 && (
+        <Link to="/plant-health" className="ks-plant-due-banner">
+          <span className="ks-plant-due-icon" aria-hidden="true">♧</span>
+          <span><strong>{t("plantPhotoDue")}</strong><small>{t("plantPhotoDueDescription")}</small></span>
+          <span className="ks-plant-due-action">{t("takePhotoNow")} →</span>
+        </Link>
+      )}
 
       <section className="ks-stat-grid" aria-label={t("farmOverview")}>
         <article className="ks-stat-card ks-crop-stat">
@@ -1098,6 +1211,220 @@ function Traceability({ batches, onAddBatch }) {
           );
         })}
       </section>
+    </>
+  );
+}
+
+function PlantHealth({ today, photos, onAddPhoto }) {
+  const { language, t } = useLanguage();
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedPhotoId, setSelectedPhotoId] = useState("");
+  const daysUntilPhoto = getDaysUntilPlantPhoto(today, photos);
+  const sortedPhotos = [...photos].sort((a, b) => b.date.localeCompare(a.date));
+  const selectedPhoto = photos.find((photo) => photo.id === selectedPhotoId);
+
+  function handlePhotoChange(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadError(t("chooseImage"));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setPhotoPreview(reader.result);
+        setUploadError("");
+      } else {
+        setUploadError(t("imageReadError"));
+      }
+    };
+    reader.onerror = () => setUploadError(t("imageReadError"));
+    reader.readAsDataURL(file);
+  }
+
+  async function analyzePhoto(event) {
+    event.preventDefault();
+    if (!photoPreview || isAnalyzing) return;
+    setIsAnalyzing(true);
+    await new Promise((resolve) => window.setTimeout(resolve, 2000));
+
+    const outcomes = [
+      {
+        healthy: true,
+        diseaseNameKey: "noDiseaseDetected",
+        confidence: 91,
+        descriptionKey: "healthyDescription",
+        treatmentKeys: ["keepMonitoring", "waterAtSoilLevel", "maintainAirflow"]
+      },
+      {
+        healthy: false,
+        diseaseNameKey: "leafSpot",
+        confidence: 58,
+        descriptionKey: "lowConfidenceDescription",
+        treatmentKeys: []
+      },
+      {
+        healthy: false,
+        diseaseNameKey: "leafSpot",
+        confidence: 78,
+        descriptionKey: "leafSpotDescription",
+        treatmentKeys: ["removeAffectedLeaves", "avoidWetFoliage", "monitorNewGrowth"]
+      }
+    ];
+    const finding = outcomes[(photos.length - 2) % outcomes.length];
+    const previousPhoto = sortedPhotos[0];
+    const photo = {
+      id: crypto.randomUUID(),
+      date: formatInputDate(today),
+      photoUrl: photoPreview,
+      ...finding,
+      comparisonKey: previousPhoto.healthy === finding.healthy
+        ? "same"
+        : finding.healthy
+          ? "improved"
+          : "worse"
+    };
+
+    onAddPhoto(photo);
+    setSelectedPhotoId(photo.id);
+    setPhotoPreview("");
+    setIsAnalyzing(false);
+    setIsUploadOpen(false);
+  }
+
+  function closeUpload() {
+    if (isAnalyzing) return;
+    setIsUploadOpen(false);
+    setPhotoPreview("");
+    setUploadError("");
+  }
+
+  return (
+    <>
+      <div className="ks-page-heading">
+        <div><h1>{t("plantHealth")}</h1><p>{t("fieldOneTomato")}</p></div>
+      </div>
+
+      <section className="ks-panel ks-plant-due-card">
+        <div className="ks-plant-due-copy">
+          <span className="ks-stat-icon ks-icon-lime" aria-hidden="true">♧</span>
+          <div>
+            <p className="ks-eyebrow">{t("nextPhotoDue").toUpperCase()}</p>
+            <h2>{daysUntilPhoto === 0 ? t("photoDueNow") : t("photoDueIn").replace("{days}", daysUntilPhoto)}</h2>
+            <p>{t("photoCycleDescription")}</p>
+          </div>
+        </div>
+        <button type="button" className="ks-primary-button" onClick={() => setIsUploadOpen(true)}>
+          {t("takePhotoNow")}
+        </button>
+      </section>
+
+      {selectedPhoto && (
+        <article className="ks-panel ks-plant-result">
+          <div className="ks-panel-heading">
+            <div><p className="ks-eyebrow">{t("latestAnalysis").toUpperCase()}</p><h2>{formatLogDate(selectedPhoto.date, language)}</h2></div>
+            <span className={`ks-status-pill ${selectedPhoto.healthy ? "ks-plant-healthy" : "ks-plant-caution"}`}>
+              {t(selectedPhoto.healthy ? "healthy" : "possibleDisease")}
+            </span>
+          </div>
+          <div className="ks-plant-result-body">
+            <img src={selectedPhoto.photoUrl} alt={t("plantPhotoAlt")} />
+            <div className="ks-plant-result-copy">
+              <h3>{t(selectedPhoto.diseaseNameKey)}</h3>
+              <span className="ks-plant-confidence">{t("confidence")}: {selectedPhoto.confidence}%</span>
+              <p>{t(selectedPhoto.descriptionKey)}</p>
+              {selectedPhoto.confidence < 65 ? (
+                <p className="ks-plant-expert-note">{t("showExpertNotice")}</p>
+              ) : (
+                <div className="ks-plant-treatment">
+                  <h4>{t("suggestedTreatment")}</h4>
+                  <ul>{selectedPhoto.treatmentKeys.map((key) => <li key={key}>{t(key)}</li>)}</ul>
+                  <p className="ks-plant-safety-notice">{t("plantSafetyNotice")}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </article>
+      )}
+
+      <section className="ks-panel ks-plant-timeline">
+        <div className="ks-panel-heading">
+          <div><p className="ks-eyebrow">{t("fieldOneTomato").toUpperCase()}</p><h2>{t("photoTimeline")}</h2></div>
+          <span className="ks-entry-count">{photos.length} {t("photos")}</span>
+        </div>
+        <div className="ks-plant-timeline-list">
+          {sortedPhotos.map((photo) => (
+            <article className="ks-plant-timeline-entry" key={photo.id}>
+              <button
+                type="button"
+                className="ks-plant-photo-thumb"
+                onClick={() => setSelectedPhotoId(photo.id)}
+                aria-label={`${t("viewAnalysis")}: ${formatLogDate(photo.date, language)}`}
+              >
+                <img src={photo.photoUrl} alt={t("plantPhotoAlt")} loading="lazy" />
+              </button>
+              <div className="ks-plant-timeline-copy">
+                <div className="ks-plant-timeline-top">
+                  <strong>{formatLogDate(photo.date, language)}</strong>
+                  <span className={`ks-status-pill ${photo.healthy ? "ks-plant-healthy" : "ks-plant-caution"}`}>
+                    {t(photo.healthy ? "healthy" : "possibleDisease")}
+                  </span>
+                </div>
+                <h3>{t(photo.diseaseNameKey)}</h3>
+                {photo.comparisonKey && (
+                  <span className={`ks-plant-comparison ks-comparison-${photo.comparisonKey}`}>
+                    {t("comparedToPrevious")}: {t(photo.comparisonKey)}
+                  </span>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {isUploadOpen && (
+        <div
+          className="ks-plant-modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeUpload();
+          }}
+        >
+          <section className="ks-panel ks-plant-upload-modal" role="dialog" aria-modal="true" aria-labelledby="plant-upload-title">
+            <div className="ks-panel-heading">
+              <div><p className="ks-eyebrow">{t("fieldOneTomato").toUpperCase()}</p><h2 id="plant-upload-title">{t("addPlantPhoto")}</h2></div>
+              <button type="button" className="ks-close-button" onClick={closeUpload} disabled={isAnalyzing} aria-label={t("close")}>×</button>
+            </div>
+            <form onSubmit={analyzePhoto}>
+              <div className="ks-plant-upload-options">
+                <label className="ks-plant-upload-option">
+                  <span aria-hidden="true">◎</span>{t("takePhoto")}
+                  <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} />
+                </label>
+                <label className="ks-plant-upload-option">
+                  <span aria-hidden="true">▧</span>{t("chooseFromGallery")}
+                  <input type="file" accept="image/*" onChange={handlePhotoChange} />
+                </label>
+              </div>
+              {uploadError && <p className="ks-photo-error" role="alert">{uploadError}</p>}
+              {photoPreview ? (
+                <img className="ks-plant-preview" src={photoPreview} alt={t("plantPhotoAlt")} />
+              ) : (
+                <div className="ks-plant-preview-placeholder"><span aria-hidden="true">♧</span><p>{t("plantPhotoPrompt")}</p></div>
+              )}
+              <button type="submit" className="ks-primary-button ks-plant-analyze-button" disabled={!photoPreview || isAnalyzing}>
+                {isAnalyzing && <span className="ks-login-spinner" aria-hidden="true" />}
+                {isAnalyzing ? t("analyzing") : t("analyzePhoto")}
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
     </>
   );
 }
