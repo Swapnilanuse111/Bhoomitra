@@ -1,9 +1,17 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { Link, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import "./bhoomitra.css";
 import { languages, translate } from "./localization";
 import { analyzePhoto as analyzePlantPhoto } from "../services/plantHealthApi.js";
+import {
+  createCropLogEntry,
+  getCropLog,
+  getCurrentUser,
+  loginFarmer,
+  logoutFarmer,
+  registerFarmer
+} from "../services/farmerApi.js";
 
 const LanguageContext = createContext({ language: "en", setLanguage: () => {}, t: (key) => key });
 
@@ -11,8 +19,6 @@ function useLanguage() {
   return useContext(LanguageContext);
 }
 
-const sowingDate = "2026-09-18";
-const sowingTimestamp = Date.parse(`${sowingDate}T00:00:00`);
 const localeFallbacks = {
   brx: "hi-IN",
   doi: "hi-IN",
@@ -88,25 +94,6 @@ async function reverseGeocode(latitude, longitude) {
   const region = result.principalSubdivision;
   return [city, region].filter(Boolean).join(", ") || result.countryName || "";
 }
-
-const starterEntries = [
-  {
-    id: "sowing",
-    day: 1,
-    date: "2026-09-18",
-    title: "Sowing",
-    description: "Sowed the main field with healthy tomato seeds.",
-    photoUrl: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=500&q=80"
-  },
-  {
-    id: "fertilizer",
-    day: 15,
-    date: "2026-10-02",
-    title: "Fertilizer applied",
-    description: "Applied organic compost around the young plants to support steady growth.",
-    photoUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=500&q=80"
-  }
-];
 
 const inputHistory = [
   { date: "2026-09-18", nameKey: "tomatoSeeds", detailKey: "desiVariety", amount: 2, unitKey: "kilos", type: "Seed" },
@@ -193,34 +180,22 @@ function getDaysUntilPlantPhoto(today, photos) {
   return Math.max(0, 5 - elapsedDays);
 }
 
-function loadCropEntries() {
-  const storedEntries = readStored("bhoomitra-crop-log", starterEntries);
-  return storedEntries.map((entry) => ({
-    ...entry,
-    title: entry.title || entry.activity || "Field activity",
-    description: entry.description || entry.note || "",
-    photoUrl: entry.photoUrl || ""
-  }));
-}
-
-function getEntryText(entry, field, t) {
-  const sampleKeys = {
-    sowing: { title: "sowing", description: "sowingDescription" },
-    fertilizer: { title: "fertilizerApplied", description: "fertilizerDescription" }
-  };
-  const translationKey = sampleKeys[entry.id]?.[field];
-  return translationKey ? t(translationKey) : entry[field];
+function getEntryText(entry, field) {
+  return entry[field];
 }
 
 function BhoomitraApp() {
   const [today] = useState(() => new Date());
   const [plantPhotos, setPlantPhotos] = useState(createStarterPlantPhotos);
+  const [user, setUser] = useState(null);
+  const [authStatus, setAuthStatus] = useState("loading");
+  const [authError, setAuthError] = useState("");
   const [language, setLanguage] = useState(() => {
     migrateLegacyStorage();
     const savedLanguage = localStorage.getItem("bhoomitra-language");
     return languages.some((item) => item.code === savedLanguage) ? savedLanguage : "en";
   });
-  const [entries, setEntries] = useState(loadCropEntries);
+  const [entries, setEntries] = useState([]);
   const [batches, setBatches] = useState(() =>
     readStored("bhoomitra-trace-batches", starterBatches)
   );
@@ -239,6 +214,31 @@ function BhoomitraApp() {
     current: null,
     error: ""
   }));
+
+  useEffect(() => {
+    let active = true;
+    getCurrentUser()
+      .then(async (currentUser) => {
+        if (!active) return;
+        if (!currentUser) {
+          setAuthStatus("anonymous");
+          return;
+        }
+        const cropEntries = await getCropLog();
+        if (!active) return;
+        setUser(currentUser);
+        setEntries(cropEntries);
+        setAuthStatus("authenticated");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setAuthError(error.message);
+        setAuthStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -304,10 +304,6 @@ function BhoomitraApp() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("bhoomitra-crop-log", JSON.stringify(entries));
-  }, [entries]);
-
-  useEffect(() => {
     if (feedback) {
       localStorage.setItem("bhoomitra-advisory-feedback", JSON.stringify(feedback));
     }
@@ -324,8 +320,10 @@ function BhoomitraApp() {
     localStorage.setItem("bhoomitra-language", language);
   }, [language]);
 
-  function addEntry(entry) {
-    setEntries((current) => [entry, ...current]);
+  async function addEntry(entry) {
+    const savedEntry = await createCropLogEntry(entry);
+    setEntries((current) => [savedEntry, ...current]);
+    return savedEntry;
   }
 
   function addBatch(batch) {
@@ -400,29 +398,52 @@ function BhoomitraApp() {
     setFeedback({ answer, date: new Date().toISOString() });
   }
 
+  async function finishSignIn(authenticatedUser) {
+    const cropEntries = await getCropLog();
+    setUser(authenticatedUser);
+    setEntries(cropEntries);
+    setAuthStatus("authenticated");
+  }
+
+  async function signOut() {
+    await logoutFarmer();
+    setUser(null);
+    setEntries([]);
+    setAuthStatus("anonymous");
+  }
+
+  if (authStatus === "loading") {
+    return <main className="ks-auth-loading"><span className="ks-login-spinner" aria-label="Loading account" /></main>;
+  }
+
+  if (authStatus === "error") {
+    return <main className="ks-auth-error" role="alert">{authError}</main>;
+  }
+
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t: (key) => translate(language, key) }}>
       <Routes>
-        <Route index element={<LoginPage />} />
+        <Route index element={authStatus === "authenticated" ? <Navigate to="/dashboard" replace /> : <LoginPage onAuthenticated={finishSignIn} />} />
         <Route path="trace/:batchId" element={<PublicTracePage batches={batches} />} />
-        <Route element={<FarmerLayout today={today} />}>
-          <Route path="dashboard" element={<Dashboard today={today} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={getDaysUntilPlantPhoto(today, plantPhotos)} />} />
+        <Route element={authStatus === "authenticated" ? <FarmerLayout today={today} user={user} onSignOut={signOut} /> : <Navigate to="/" replace />}>
+          <Route path="dashboard" element={<Dashboard today={today} user={user} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={getDaysUntilPlantPhoto(today, plantPhotos)} />} />
           <Route path="crop-log" element={<CropLog today={today} entries={entries} onAddEntry={addEntry} />} />
           <Route path="advisory" element={<Advisory feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} />} />
           <Route path="plant-health" element={<PlantHealth today={today} photos={plantPhotos} onAddPhoto={addPlantPhoto} />} />
-          <Route path="traceability" element={<Traceability batches={batches} onAddBatch={addBatch} />} />
-          <Route path="*" element={<Dashboard today={today} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={getDaysUntilPlantPhoto(today, plantPhotos)} />} />
+          <Route path="traceability" element={<Traceability batches={batches} onAddBatch={addBatch} farmerName={user?.name || ""} />} />
+          <Route path="*" element={<Dashboard today={today} user={user} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={getDaysUntilPlantPhoto(today, plantPhotos)} />} />
         </Route>
+        <Route path="*" element={<Navigate to={authStatus === "authenticated" ? "/dashboard" : "/"} replace />} />
       </Routes>
     </LanguageContext.Provider>
   );
 }
 
-function LoginPage() {
+function LoginPage({ onAuthenticated }) {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const [isRegistering, setIsRegistering] = useState(false);
-  const [name, setName] = useState("Aarav Patil");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -430,8 +451,9 @@ function LoginPage() {
   const [authNotice, setAuthNotice] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setFormError("");
     setAuthNotice("");
@@ -441,11 +463,17 @@ function LoginPage() {
       return;
     }
     setIsSubmitting(true);
-    const farmerName = isRegistering
-      ? name.trim()
-      : localStorage.getItem("bhoomitra-farmer-name") || email.split("@")[0] || t("farmer");
-    localStorage.setItem("bhoomitra-farmer-name", farmerName);
-    navigate("/dashboard");
+    try {
+      const authenticatedUser = isRegistering
+        ? await registerFarmer({ name: name.trim(), email, password })
+        : await loginFarmer({ email, password, rememberMe });
+      await onAuthenticated(authenticatedUser);
+      navigate("/dashboard");
+    } catch (error) {
+      setFormError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -465,7 +493,7 @@ function LoginPage() {
         <p className="ks-eyebrow">{t("welcomeFarmer")}</p>
         <h2>{isRegistering ? t("createAccount") : t("signIn")}</h2>
         <p className="ks-login-description">
-          {isRegistering ? t("registerDescription") : t("demoLoginDescription")}
+          {isRegistering ? t("registerDescription") : t("loginDescription")}
         </p>
         <form onSubmit={handleSubmit} className="ks-login-form">
           {isRegistering && (
@@ -536,13 +564,13 @@ function LoginPage() {
           {!isRegistering && (
             <div className="ks-login-options">
               <label className="ks-remember-option">
-                <input type="checkbox" name="rememberMe" />
+                <input type="checkbox" name="rememberMe" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
                 <span>{t("rememberMe")}</span>
               </label>
               <button
                 type="button"
                 className="ks-forgot-password"
-                onClick={() => setAuthNotice(t("passwordResetDemo"))}
+                onClick={() => setAuthNotice(t("passwordResetUnavailable"))}
               >
                 {t("forgotPassword")}
               </button>
@@ -579,13 +607,6 @@ function LoginPage() {
             {isRegistering ? t("signIn") : t("createAccount")}
           </button>
         </p>
-        <p className="ks-demo-note">
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <circle cx="10" cy="10" r="8" />
-            <path d="M10 9v5M10 6.3v.2" />
-          </svg>
-          {t("demoAuthNotice")}
-        </p>
       </section>
     </main>
   );
@@ -609,9 +630,18 @@ function LanguageSelect({ language, onChange, t }) {
   );
 }
 
-function FarmerLayout({ today }) {
+function FarmerLayout({ today, user, onSignOut }) {
   const { language, setLanguage, t } = useLanguage();
-  const farmerName = localStorage.getItem("bhoomitra-farmer-name") || "Aarav Patil";
+  const [signOutError, setSignOutError] = useState("");
+  const farmerName = user.name;
+
+  async function handleSignOut() {
+    try {
+      await onSignOut();
+    } catch (error) {
+      setSignOutError(error.message);
+    }
+  }
 
   return (
     <div className="ks-app">
@@ -629,16 +659,17 @@ function FarmerLayout({ today }) {
         </nav>
         <div className="ks-sidebar-bottom">
           <div className="ks-user-avatar">{farmerName.charAt(0).toUpperCase()}</div>
-          <div className="ks-user-copy"><strong>{farmerName}</strong><span>{t("demoFarmer")}</span></div>
-          <Link
-            to="/"
+          <div className="ks-user-copy"><strong>{farmerName}</strong><span>{t("farmerProfile")}</span></div>
+          <button
+            type="button"
             className="ks-logout"
             aria-label={t("signOut")}
-            onClick={() => localStorage.removeItem("bhoomitra-farmer-name")}
+            onClick={handleSignOut}
           >
             ↗
-          </Link>
+          </button>
         </div>
+        {signOutError && <p className="ks-sidebar-error" role="alert">{signOutError}</p>}
       </aside>
       <div className="ks-main">
         <header className="ks-topbar">
@@ -648,7 +679,7 @@ function FarmerLayout({ today }) {
           </div>
           <div className="ks-topbar-tools">
             <LanguageSelect language={language} onChange={setLanguage} t={t} />
-            <span className="ks-workspace-tag">{t("bhoomitraDemo").toUpperCase()}</span>
+            <span className="ks-workspace-tag">BHOOMITRA</span>
           </div>
         </header>
         <main className="ks-content"><Outlet /></main>
@@ -659,6 +690,7 @@ function FarmerLayout({ today }) {
 
 function Dashboard({
   today,
+  user,
   entries,
   feedback,
   onFeedback,
@@ -669,17 +701,14 @@ function Dashboard({
   daysUntilPlantPhoto
 }) {
   const { language, t } = useLanguage();
-  const daysSinceSowing = Math.max(
-    1,
-    Math.floor((today.getTime() - sowingTimestamp) / 86400000) + 1
-  );
+  const recentEntry = entries[0];
 
   return (
     <>
       <div className="ks-page-heading">
         <div>
           <p className="ks-eyebrow">{today.toLocaleDateString(localeFallbacks[language] || language, { weekday: "long", month: "long", day: "numeric", year: "numeric" }).toUpperCase()}</p>
-          <h1>{t("goodMorning")}, {localStorage.getItem("bhoomitra-farmer-name") || "Aarav"} <span>☀</span></h1>
+          <h1>{t("goodMorning")}, {user.name} <span>☀</span></h1>
           <p>{t("dashboardIntro")}</p>
         </div>
         <Link to="/crop-log" className="ks-primary-button ks-heading-button">＋ {t("logFarmActivity")}</Link>
@@ -695,16 +724,16 @@ function Dashboard({
 
       <section className="ks-stat-grid" aria-label={t("farmOverview")}>
         <article className="ks-stat-card ks-crop-stat">
-          <div className="ks-stat-top"><span className="ks-stat-icon">♧</span><span className="ks-status-pill">{t("growingWell")}</span></div>
-          <p className="ks-stat-label">{t("currentCrop").toUpperCase()}</p>
-          <h2>{t("desiTomato")}</h2>
-          <p className="ks-stat-foot">{t("fieldOneLabel")} · 2 {t("acres")}</p>
+          <div className="ks-stat-top"><span className="ks-stat-icon">♧</span><span className="ks-status-pill">{t("cropLog")}</span></div>
+          <p className="ks-stat-label">{t("recentActivity").toUpperCase()}</p>
+          <h2>{recentEntry ? recentEntry.title : t("noActivitiesYet")}</h2>
+          <p className="ks-stat-foot">{recentEntry ? formatLogDate(recentEntry.date, language) : t("addFirstActivity")}</p>
         </article>
         <article className="ks-stat-card">
           <div className="ks-stat-top"><span className="ks-stat-icon ks-icon-lime">◷</span><span className="ks-stat-trend">↗ {t("onTrack")}</span></div>
-          <p className="ks-stat-label">{t("daysSinceSowing").toUpperCase()}</p>
-          <h2>{daysSinceSowing}<small> {t("days")}</small></h2>
-          <p className="ks-stat-foot">{t("sownOn")} {formatLogDate(sowingDate, language)}</p>
+          <p className="ks-stat-label">{t("activitiesLogged").toUpperCase()}</p>
+          <h2>{entries.length}</h2>
+          <p className="ks-stat-foot">{t("savedToAccount")}</p>
         </article>
         <article className="ks-stat-card ks-weather-card">
           <WeatherCard
@@ -867,23 +896,32 @@ function CropLog({ today, entries, onAddEntry }) {
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-    onAddEntry({
-      id: crypto.randomUUID(),
-      day: Math.max(1, Math.floor((Date.parse(`${date}T00:00:00`) - sowingTimestamp) / 86400000) + 1),
-      date,
-      title: title.trim(),
-      description: description.trim(),
-      photoUrl
-    });
-    setTitle("");
-    setDate(formatInputDate(today));
-    setDescription("");
-    setPhotoUrl("");
-    setPhotoError("");
-    setFormOpen(false);
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      await onAddEntry({
+        day: entries.length + 1,
+        date,
+        title: title.trim(),
+        description: description.trim(),
+        photoUrl
+      });
+      setTitle("");
+      setDate(formatInputDate(today));
+      setDescription("");
+      setPhotoUrl("");
+      setPhotoError("");
+      setFormOpen(false);
+    } catch (error) {
+      setSaveError(error.message);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function handlePhotoChange(event) {
@@ -920,7 +958,7 @@ function CropLog({ today, entries, onAddEntry }) {
   return (
     <>
       <div className="ks-page-heading">
-        <div><h1>{t("cropLog")}</h1><p>{t("fieldOneDesiTomato")}</p></div>
+        <div><h1>{t("cropLog")}</h1><p>{t("cropLogDescription")}</p></div>
         <button className="ks-primary-button ks-heading-button" onClick={() => setFormOpen((open) => !open)}>＋ {t("addEntry")}</button>
       </div>
 
@@ -935,11 +973,16 @@ function CropLog({ today, entries, onAddEntry }) {
           <label className="ks-photo-field">{t("photo")} <input type="file" accept="image/*" onChange={handlePhotoChange} /><span>{t("optionalPhoto")}</span></label>
           {photoError && <p className="ks-photo-error" role="alert">{photoError}</p>}
           {photoUrl && <div className="ks-photo-preview"><img src={photoUrl} alt={t("selectedPhotoAlt")} /><button type="button" onClick={() => setPhotoUrl("")}>{t("removePhoto")}</button></div>}
-          <button type="submit" className="ks-primary-button">{t("saveEntry")}</button>
+          {saveError && <p className="ks-form-error" role="alert">{saveError}</p>}
+          <button type="submit" className="ks-primary-button" disabled={isSaving}>
+            {isSaving && <span className="ks-login-spinner" aria-hidden="true" />}
+            {isSaving ? t("loading") : t("saveEntry")}
+          </button>
         </form>
       )}
 
       <div className="ks-crop-timeline" aria-label={t("cropLogTimeline")}>
+        {entries.length === 0 && <p className="ks-panel ks-crop-empty">{t("noActivitiesYet")} · {t("addFirstActivity")}</p>}
         {[...entries].sort((a, b) => b.date.localeCompare(a.date)).map((entry) => {
           const [, month, day] = entry.date.split("-");
           return (
@@ -947,9 +990,9 @@ function CropLog({ today, entries, onAddEntry }) {
               <div className="ks-crop-date-tile"><span>{new Intl.DateTimeFormat(localeFallbacks[language] || language, { month: "short" }).format(new Date(Number(entry.date.slice(0, 4)), Number(month) - 1, Number(day)))}</span><strong>{Number(day)}</strong></div>
               <span className="ks-crop-timeline-marker" aria-hidden="true" />
               <div className="ks-panel ks-crop-entry-card">
-                <p className="ks-eyebrow">{formatLogDate(entry.date, language)} · {t("fieldOneLabel").toUpperCase()}</p>
-                <h2>{t("day")} {entry.day}: {getEntryText(entry, "title", t)}</h2>
-                <p className="ks-crop-entry-description">{getEntryText(entry, "description", t)}</p>
+                <p className="ks-eyebrow">{formatLogDate(entry.date, language)} · {t("cropLog").toUpperCase()}</p>
+                <h2>{t("day")} {entry.day}: {getEntryText(entry, "title")}</h2>
+                <p className="ks-crop-entry-description">{getEntryText(entry, "description")}</p>
                 {entry.photoUrl && <img className="ks-crop-entry-photo" src={entry.photoUrl} alt={`${t("photoFor")} ${getEntryText(entry, "title", t)}`} loading="lazy" />}
               </div>
             </article>
@@ -1053,7 +1096,7 @@ function Advisory({ feedback, onFeedback, weatherState, weatherLocation, onReque
   );
 }
 
-function Traceability({ batches, onAddBatch }) {
+function Traceability({ batches, onAddBatch, farmerName }) {
   const { language, t } = useLanguage();
   const [formOpen, setFormOpen] = useState(false);
   const [field, setField] = useState("Field 01");
@@ -1080,7 +1123,6 @@ function Traceability({ batches, onAddBatch }) {
       const match = batch.batchNumber?.match(new RegExp(`^TB-${year}-(\\d+)$`));
       return match ? Math.max(highest, Number(match[1])) : highest;
     }, 13) + 1;
-    const farmerName = localStorage.getItem("bhoomitra-farmer-name") || "Aarav Patil";
     const batch = {
       id: crypto.randomUUID(),
       batchNumber: `TB-${year}-${String(nextSequence).padStart(3, "0")}`,

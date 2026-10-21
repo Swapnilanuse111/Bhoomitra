@@ -158,11 +158,46 @@
 
 .ks-logout {
   margin-left: auto;
+  padding: 4px;
+  border: 0;
+  background: transparent;
   color: #b1c0b4;
+  cursor: pointer;
 }
 
 .ks-logout:hover {
   color: #fff;
+}
+
+.ks-sidebar-error {
+  margin: 8px 0;
+  color: #ffd8cf;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ks-auth-loading,
+.ks-auth-error {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #faf8f3;
+  color: #a34f42;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.ks-auth-loading .ks-login-spinner {
+  width: 28px;
+  height: 28px;
+  border-color: #b8c8b5;
+  border-top-color: #2f6b45;
+}
+
+.ks-crop-empty {
+  padding: 18px;
+  color: #657167;
+  font-size: 13px;
 }
 
 .ks-main {
