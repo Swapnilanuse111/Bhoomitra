@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+db.sqlite3
+plant_disease/dataset/
+plant_disease/data_split/
+plant_disease/models/

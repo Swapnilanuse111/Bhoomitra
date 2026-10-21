@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearch
 import { QRCodeSVG } from "qrcode.react";
 import "./bhoomitra.css";
 import { languages, translate } from "./localization";
+import { analyzePhoto as analyzePlantPhoto } from "../services/plantHealthApi.js";
 
 const LanguageContext = createContext({ language: "en", setLanguage: () => {}, t: (key) => key });
 
@@ -179,37 +180,8 @@ function formatInputDate(date) {
   return `${year}-${month}-${day}`;
 }
 
-function dateDaysAgo(today, daysAgo) {
-  const date = new Date(today);
-  date.setDate(date.getDate() - daysAgo);
-  return formatInputDate(date);
-}
-
-function createStarterPlantPhotos(today) {
-  return [
-    {
-      id: "plant-photo-1",
-      date: dateDaysAgo(today, 8),
-      photoUrl: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=700&q=80",
-      healthy: false,
-      diseaseNameKey: "leafSpot",
-      confidence: 72,
-      descriptionKey: "leafSpotDescription",
-      treatmentKeys: ["removeAffectedLeaves", "avoidWetFoliage", "monitorNewGrowth"],
-      comparisonKey: ""
-    },
-    {
-      id: "plant-photo-2",
-      date: dateDaysAgo(today, 3),
-      photoUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=700&q=80",
-      healthy: true,
-      diseaseNameKey: "noDiseaseDetected",
-      confidence: 91,
-      descriptionKey: "healthyDescription",
-      treatmentKeys: ["keepMonitoring", "waterAtSoilLevel", "maintainAirflow"],
-      comparisonKey: "improved"
-    }
-  ];
+function createStarterPlantPhotos() {
+  return [];
 }
 
 function getDaysUntilPlantPhoto(today, photos) {
@@ -242,7 +214,7 @@ function getEntryText(entry, field, t) {
 
 function BhoomitraApp() {
   const [today] = useState(() => new Date());
-  const [plantPhotos, setPlantPhotos] = useState(() => createStarterPlantPhotos(today));
+  const [plantPhotos, setPlantPhotos] = useState(createStarterPlantPhotos);
   const [language, setLanguage] = useState(() => {
     migrateLegacyStorage();
     const savedLanguage = localStorage.getItem("bhoomitra-language");
@@ -1215,10 +1187,20 @@ function Traceability({ batches, onAddBatch }) {
   );
 }
 
+const LABEL_NAMES = {
+  healthy: "निरोगी / Healthy",
+  diseased: "रोगाची शक्यता / Possible disease"
+};
+
+function TreatmentAdvice() {
+  return <p className="ks-plant-treatment-placeholder">उपचार माहिती लवकरच - कृपया कृषी अधिकाऱ्याचा सल्ला घ्या</p>;
+}
+
 function PlantHealth({ today, photos, onAddPhoto }) {
   const { language, t } = useLanguage();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedPhotoId, setSelectedPhotoId] = useState("");
@@ -1231,77 +1213,60 @@ function PlantHealth({ today, photos, onAddPhoto }) {
     event.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
+      setSelectedFile(null);
+      setPhotoPreview("");
       setUploadError(t("chooseImage"));
       return;
     }
 
+    setSelectedFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
         setPhotoPreview(reader.result);
         setUploadError("");
       } else {
+        setSelectedFile(null);
         setUploadError(t("imageReadError"));
       }
     };
-    reader.onerror = () => setUploadError(t("imageReadError"));
+    reader.onerror = () => {
+      setSelectedFile(null);
+      setUploadError(t("imageReadError"));
+    };
     reader.readAsDataURL(file);
   }
 
   async function analyzePhoto(event) {
     event.preventDefault();
-    if (!photoPreview || isAnalyzing) return;
+    if (!selectedFile || isAnalyzing) return;
     setIsAnalyzing(true);
-    await new Promise((resolve) => window.setTimeout(resolve, 2000));
-
-    const outcomes = [
-      {
-        healthy: true,
-        diseaseNameKey: "noDiseaseDetected",
-        confidence: 91,
-        descriptionKey: "healthyDescription",
-        treatmentKeys: ["keepMonitoring", "waterAtSoilLevel", "maintainAirflow"]
-      },
-      {
-        healthy: false,
-        diseaseNameKey: "leafSpot",
-        confidence: 58,
-        descriptionKey: "lowConfidenceDescription",
-        treatmentKeys: []
-      },
-      {
-        healthy: false,
-        diseaseNameKey: "leafSpot",
-        confidence: 78,
-        descriptionKey: "leafSpotDescription",
-        treatmentKeys: ["removeAffectedLeaves", "avoidWetFoliage", "monitorNewGrowth"]
-      }
-    ];
-    const finding = outcomes[(photos.length - 2) % outcomes.length];
-    const previousPhoto = sortedPhotos[0];
-    const photo = {
-      id: crypto.randomUUID(),
-      date: formatInputDate(today),
-      photoUrl: photoPreview,
-      ...finding,
-      comparisonKey: previousPhoto.healthy === finding.healthy
-        ? "same"
-        : finding.healthy
-          ? "improved"
-          : "worse"
-    };
-
-    onAddPhoto(photo);
-    setSelectedPhotoId(photo.id);
-    setPhotoPreview("");
-    setIsAnalyzing(false);
-    setIsUploadOpen(false);
+    setUploadError("");
+    try {
+      const analysis = await analyzePlantPhoto(selectedFile);
+      const photo = {
+        id: crypto.randomUUID(),
+        date: formatInputDate(today),
+        photoUrl: photoPreview,
+        analysis
+      };
+      onAddPhoto(photo);
+      setSelectedPhotoId(photo.id);
+      setPhotoPreview("");
+      setSelectedFile(null);
+      setIsUploadOpen(false);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "सर्व्हरशी संपर्क होऊ शकला नाही");
+    } finally {
+      setIsAnalyzing(false);
+    }
   }
 
   function closeUpload() {
     if (isAnalyzing) return;
     setIsUploadOpen(false);
     setPhotoPreview("");
+    setSelectedFile(null);
     setUploadError("");
   }
 
@@ -1329,25 +1294,26 @@ function PlantHealth({ today, photos, onAddPhoto }) {
         <article className="ks-panel ks-plant-result">
           <div className="ks-panel-heading">
             <div><p className="ks-eyebrow">{t("latestAnalysis").toUpperCase()}</p><h2>{formatLogDate(selectedPhoto.date, language)}</h2></div>
-            <span className={`ks-status-pill ${selectedPhoto.healthy ? "ks-plant-healthy" : "ks-plant-caution"}`}>
-              {t(selectedPhoto.healthy ? "healthy" : "possibleDisease")}
+            <span className={`ks-status-pill ${selectedPhoto.analysis.uncertain ? "ks-plant-caution" : "ks-plant-healthy"}`}>
+              {selectedPhoto.analysis.uncertain ? "तज्ज्ञांचा सल्ला आवश्यक" : t("latestAnalysis")}
             </span>
           </div>
           <div className="ks-plant-result-body">
             <img src={selectedPhoto.photoUrl} alt={t("plantPhotoAlt")} />
             <div className="ks-plant-result-copy">
-              <h3>{t(selectedPhoto.diseaseNameKey)}</h3>
-              <span className="ks-plant-confidence">{t("confidence")}: {selectedPhoto.confidence}%</span>
-              <p>{t(selectedPhoto.descriptionKey)}</p>
-              {selectedPhoto.confidence < 65 ? (
-                <p className="ks-plant-expert-note">{t("showExpertNotice")}</p>
+              {selectedPhoto.analysis.uncertain ? (
+                <>
+                  <h3>रोग निश्चित सांगता येत नाही, कृपया हा फोटो तज्ज्ञांना दाखवा</h3>
+                  <p className="ks-plant-expert-note">फळाचा जवळून, स्पष्ट प्रकाशात फोटो घ्या</p>
+                </>
               ) : (
-                <div className="ks-plant-treatment">
-                  <h4>{t("suggestedTreatment")}</h4>
-                  <ul>{selectedPhoto.treatmentKeys.map((key) => <li key={key}>{t(key)}</li>)}</ul>
-                  <p className="ks-plant-safety-notice">{t("plantSafetyNotice")}</p>
-                </div>
+                <>
+                  <h3>{LABEL_NAMES[selectedPhoto.analysis.label] || selectedPhoto.analysis.label}</h3>
+                  <span className="ks-plant-confidence">{t("confidence")}: {Math.round(selectedPhoto.analysis.confidence * 100)}%</span>
+                </>
               )}
+              <p>{selectedPhoto.analysis.disclaimer}</p>
+              <TreatmentAdvice />
             </div>
           </div>
         </article>
@@ -1372,16 +1338,11 @@ function PlantHealth({ today, photos, onAddPhoto }) {
               <div className="ks-plant-timeline-copy">
                 <div className="ks-plant-timeline-top">
                   <strong>{formatLogDate(photo.date, language)}</strong>
-                  <span className={`ks-status-pill ${photo.healthy ? "ks-plant-healthy" : "ks-plant-caution"}`}>
-                    {t(photo.healthy ? "healthy" : "possibleDisease")}
+                  <span className={`ks-status-pill ${photo.analysis.uncertain ? "ks-plant-caution" : "ks-plant-healthy"}`}>
+                    {photo.analysis.uncertain ? "तज्ज्ञांचा सल्ला आवश्यक" : t("latestAnalysis")}
                   </span>
                 </div>
-                <h3>{t(photo.diseaseNameKey)}</h3>
-                {photo.comparisonKey && (
-                  <span className={`ks-plant-comparison ks-comparison-${photo.comparisonKey}`}>
-                    {t("comparedToPrevious")}: {t(photo.comparisonKey)}
-                  </span>
-                )}
+                <h3>{photo.analysis.uncertain ? "रोग निश्चित सांगता येत नाही" : LABEL_NAMES[photo.analysis.label] || photo.analysis.label}</h3>
               </div>
             </article>
           ))}
@@ -1411,7 +1372,7 @@ function PlantHealth({ today, photos, onAddPhoto }) {
                   <input type="file" accept="image/*" onChange={handlePhotoChange} />
                 </label>
               </div>
-              {uploadError && <p className="ks-photo-error" role="alert">{uploadError}</p>}
+              {uploadError && <div className="ks-panel ks-plant-error" role="alert">{uploadError}</div>}
               {photoPreview ? (
                 <img className="ks-plant-preview" src={photoPreview} alt={t("plantPhotoAlt")} />
               ) : (
