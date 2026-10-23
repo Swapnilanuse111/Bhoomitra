@@ -218,7 +218,8 @@ Add screenshots of your actual application to the repository and update the imag
 
 ### 🏠 Bhoomitra Homepage
 
-![Bhoomitra Homepage](C:\Users\Swapnil Anuse\OneDrive\Pictures\Screenshots\Screenshot 2026-10-23 183038.png)
+![Bhoomitra Homepage](<img width="1919" height="951" alt="Screenshot 2026-10-23 183038" src="https://github.com/user-attachments/assets/76a5cf2b-7a39-4788-b6fd-27c0ee63f0a2" />
+)
 
 ### 🌿 Agriculture Dashboard
 
