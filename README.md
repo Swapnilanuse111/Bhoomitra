@@ -218,12 +218,11 @@ Add screenshots of your actual application to the repository and update the imag
 
 ### 🏠 Bhoomitra Homepage
 
-![Bhoomitra Homepage](<img width="1919" height="951" alt="Screenshot 2026-10-23 183038" src="https://github.com/user-attachments/assets/76a5cf2b-7a39-4788-b6fd-27c0ee63f0a2" />
-)
+![Bhoomitra Homepage](<img src="assets/Home.png" width="800" alt="Bhoomitra Homepage"/>)
 
 ### 🌿 Agriculture Dashboard
 
-![Bhoomitra Dashboard](docs/screenshots/dashboard.png)
+![Bhoomitra Dashboard](<img src="assets/LoginPage.png" width="800" alt="Bhoomitra Dashboard"/>)
 
 ### 🍎 Pomegranate Disease Detection
 
