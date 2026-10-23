@@ -11,6 +11,7 @@ class FarmerProfile(models.Model):
         related_name='farmer_profile',
     )
     name = models.CharField(max_length=80)
+    avatar_data = models.TextField(blank=True)
 
     def __str__(self):
         return self.name

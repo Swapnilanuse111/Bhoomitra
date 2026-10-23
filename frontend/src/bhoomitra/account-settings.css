@@ -1,0 +1,389 @@
+.ks-settings-page {
+  display: grid;
+  gap: 20px;
+}
+
+.ks-settings-page > .ks-page-heading {
+  margin-bottom: 0;
+}
+
+.ks-settings-card {
+  padding: 24px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.ks-settings-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.ks-settings-section-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #eaf1e2;
+  color: var(--ks-forest);
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.ks-settings-section-heading h2 {
+  margin: 0;
+  color: var(--ks-ink);
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.ks-settings-section-heading p {
+  margin: 5px 0 0;
+  color: var(--ks-muted);
+  font-size: 14px;
+}
+
+.ks-settings-profile-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.ks-settings-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ks-settings-avatar {
+  width: 116px;
+  height: 116px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #e2ead9;
+  border-radius: 50%;
+  background: #dce8c9;
+  color: var(--ks-forest);
+  object-fit: cover;
+  font-size: 42px;
+  font-weight: 700;
+}
+
+.ks-settings-avatar-upload {
+  min-height: 44px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--ks-line);
+  border-radius: var(--radius-control);
+  color: var(--ks-forest);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ks-settings-avatar-upload:hover {
+  background: #f1f5eb;
+}
+
+.ks-settings-avatar-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.ks-settings-profile-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 16px;
+}
+
+.ks-setting-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  color: var(--ks-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ks-setting-field > input,
+.ks-setting-field > select,
+.ks-setting-password-control > input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #dce3d9;
+  border-radius: var(--radius-control);
+  outline: none;
+  background: #fff;
+  color: var(--ks-ink);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.ks-setting-field > input:read-only {
+  background: #f7f8f4;
+  color: #394a3e;
+}
+
+.ks-setting-field > input:focus,
+.ks-setting-field > select:focus,
+.ks-setting-password-control > input:focus {
+  border-color: var(--ks-green);
+  box-shadow: 0 0 0 3px rgba(55, 107, 73, 0.18);
+}
+
+.ks-settings-supported-fields {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--ks-muted);
+  font-size: 13px;
+}
+
+.ks-settings-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ks-settings-page .ks-primary-button,
+.ks-settings-page .ks-secondary-button,
+.ks-settings-logout {
+  min-height: 48px;
+  padding: 10px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.ks-settings-page .ks-primary-button:disabled,
+.ks-settings-page .ks-secondary-button:disabled,
+.ks-settings-logout:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.ks-settings-password-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ks-setting-password-control {
+  position: relative;
+}
+
+.ks-setting-password-control > input {
+  padding-right: 48px;
+}
+
+.ks-setting-password-toggle {
+  position: absolute;
+  top: 0;
+  right: 3px;
+  width: 44px;
+  height: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--ks-forest);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.ks-settings-password-form > .ks-settings-supported-fields,
+.ks-settings-password-form > .ks-settings-message,
+.ks-settings-password-form > .ks-settings-actions {
+  grid-column: 1 / -1;
+}
+
+.ks-settings-language-field {
+  max-width: 420px;
+}
+
+.ks-settings-preferences {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ks-settings-toggle-row {
+  min-height: 76px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid var(--ks-line);
+  border-radius: var(--radius-control);
+  background: #fff;
+  cursor: pointer;
+}
+
+.ks-settings-toggle-row > span {
+  display: grid;
+  gap: 3px;
+}
+
+.ks-settings-toggle-row strong {
+  color: var(--ks-ink);
+  font-size: 15px;
+}
+
+.ks-settings-toggle-row small {
+  color: var(--ks-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ks-settings-toggle-row input {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  accent-color: var(--ks-green);
+  cursor: pointer;
+}
+
+.ks-settings-message {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.ks-settings-message.error {
+  background: #fff0ec;
+  color: #8d2e1d;
+}
+
+.ks-settings-message.success {
+  background: #edf5e8;
+  color: #28583c;
+}
+
+.ks-settings-logout {
+  border: 1px solid #b74432;
+  background: #fff;
+  color: #9d3425;
+}
+
+.ks-settings-logout:hover:not(:disabled) {
+  background: #fff2ee;
+}
+
+.ks-settings-logout:active,
+.ks-settings-page .ks-primary-button:active,
+.ks-settings-page .ks-secondary-button:active {
+  transform: scale(0.98);
+}
+
+.ks-settings-avatar-upload:focus-within,
+.ks-settings-page :where(button, input, select):focus-visible {
+  outline: 3px solid rgba(55, 107, 73, 0.35);
+  outline-offset: 2px;
+}
+
+html[data-text-size="large"] .ks-app :is(p, label, button, input, select, small, .ks-nav a, .ks-user-copy span) {
+  font-size: max(17px, 1.08em) !important;
+}
+
+html[data-text-size="large"] .ks-settings-page .ks-settings-section-heading h2 {
+  font-size: 22px;
+}
+
+html[data-high-contrast="true"] {
+  --ks-ink: #102016;
+  --ks-muted: #304238;
+  --ks-line: #66766b;
+}
+
+html[data-high-contrast="true"] .ks-main :is(p, small, label, .ks-eyebrow, .ks-settings-section-heading p, .ks-settings-toggle-row small) {
+  color: #202e24 !important;
+}
+
+html[data-reduced-motion="true"] *,
+html[data-reduced-motion="true"] *::before,
+html[data-reduced-motion="true"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (max-width: 850px) {
+  .ks-settings-password-form,
+  .ks-settings-preferences {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ks-settings-page {
+    gap: 14px;
+  }
+
+  .ks-settings-card {
+    padding: 18px;
+  }
+
+  .ks-settings-profile-row,
+  .ks-settings-profile-fields,
+  .ks-settings-password-form,
+  .ks-settings-preferences {
+    grid-template-columns: 1fr;
+  }
+
+  .ks-settings-avatar-wrap {
+    align-items: flex-start;
+    flex-direction: row;
+  }
+
+  .ks-settings-avatar {
+    width: 82px;
+    height: 82px;
+    font-size: 30px;
+  }
+
+  .ks-settings-avatar-upload {
+    align-self: center;
+  }
+
+  .ks-settings-password-form > .ks-settings-supported-fields,
+  .ks-settings-password-form > .ks-settings-message,
+  .ks-settings-password-form > .ks-settings-actions {
+    grid-column: 1;
+  }
+
+  .ks-settings-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-settings-page *,
+  .ks-settings-page *::before,
+  .ks-settings-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

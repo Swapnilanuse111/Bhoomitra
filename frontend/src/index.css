@@ -1,19 +1,30 @@
-@font-face {
-  font-family: "Product Sans";
-  src: url("./assets/fonts/ProductSans.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
 :root {
-  font-family: "Product Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ks-forest: #244c37;
+  --ks-green: #376b49;
+  --ks-leaf: #78934c;
+  --ks-lime: #dbe8c3;
+  --ks-ink: #25342b;
+  --ks-muted: #5e6c60;
+  --ks-line: #e7eae2;
+  --ks-paper: #faf8f3;
+  --gold: #d9a441;
+  --radius-card: 16px;
+  --radius-control: 12px;
+  --shadow-soft: 0 4px 20px rgba(31, 61, 46, 0.08);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  font-family: "Mukta", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #25342b;
-  background: #f7f8f4;
+  font-size: 16px;
+  color: var(--ks-ink);
+  background: var(--ks-paper);
 }
 
 * {
@@ -29,6 +40,10 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  font-family: "Mukta", sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  letter-spacing: 0;
 }
 
 button,

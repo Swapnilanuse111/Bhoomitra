@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_URL = import.meta.env.VITE_API_URL
+  || `${window.location.protocol}//${window.location.hostname}:8000`;
 
 async function parseResponse(response) {
   const result = response.status === 204
@@ -35,6 +36,22 @@ async function csrfHeaders() {
 
 export function getCurrentUser() {
   return request("/api/auth/me/").then((result) => result.user);
+}
+
+export async function updateFarmerProfile(profile) {
+  return request("/api/auth/profile/", {
+    method: "PUT",
+    headers: await csrfHeaders(),
+    body: JSON.stringify(profile)
+  });
+}
+
+export async function changeFarmerPassword({ currentPassword, newPassword, confirmPassword }) {
+  return request("/api/auth/password/", {
+    method: "POST",
+    headers: await csrfHeaders(),
+    body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+  });
 }
 
 export async function registerFarmer({ name, email, password }) {
