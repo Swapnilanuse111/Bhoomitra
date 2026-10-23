@@ -294,6 +294,7 @@
   padding: 35px clamp(24px, 4vw, 58px) 62px;
 }
 
+/* Target the main heading area for the professional coder / developer text */
 .ks-page-heading {
   margin-bottom: 26px;
   display: flex;
