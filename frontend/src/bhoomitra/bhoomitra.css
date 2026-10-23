@@ -1,3 +1,4 @@
+/* Styles for .ks-app */
 .ks-app {
   --ks-forest: #244c37;
   --ks-green: #376b49;
@@ -13,12 +14,12 @@
   color: var(--ks-ink);
   font-family: "Product Sans", ui-sans-serif, system-ui, sans-serif;
 }
-
+/* Login and authentication UI: .ks-app *, .ks-login-page * */
 .ks-app *,
 .ks-login-page * {
   box-sizing: border-box;
 }
-
+/* Sidebar layout and navigation: .ks-sidebar */
 .ks-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
@@ -30,7 +31,7 @@
   background: #1a3a2e;
   border-right: 1px solid #294b3d;
 }
-
+/* Branding and navigation styling: .ks-brand */
 .ks-brand {
   width: fit-content;
   display: flex;
@@ -41,7 +42,7 @@
   font-weight: 700;
   letter-spacing: -0.7px;
 }
-
+/* Branding and navigation styling: .ks-brand-icon */
 .ks-brand-icon {
   width: 35px;
   height: 35px;
@@ -52,7 +53,7 @@
   color: #fff;
   font-size: 19px;
 }
-
+/* Sidebar layout and navigation: .ks-sidebar-label */
 .ks-sidebar-label {
   margin: 48px 0 14px 11px;
   color: #9eafa3;
@@ -60,12 +61,12 @@
   font-weight: 700;
   letter-spacing: 1.35px;
 }
-
+/* Branding and navigation styling: .ks-nav */
 .ks-nav {
   display: grid;
   gap: 5px;
 }
-
+/* Branding and navigation styling: .ks-nav a */
 .ks-nav a {
   min-height: 46px;
   padding: 0 12px;
@@ -78,19 +79,19 @@
   font-weight: 600;
   transition: color 180ms ease, background 180ms ease, transform 180ms ease;
 }
-
+/* Branding and navigation styling: .ks-nav a > span */
 .ks-nav a > span {
   width: 20px;
   color: #9eb2a3;
   font-size: 18px;
   text-align: center;
 }
-
+/* Branding and navigation styling: .ks-nav a > .ks-nav-leaf */
 .ks-nav a > .ks-nav-leaf {
   display: grid;
   place-items: center;
 }
-
+/* Branding and navigation styling: .ks-nav-leaf svg */
 .ks-nav-leaf svg {
   width: 17px;
   height: 17px;
@@ -100,22 +101,22 @@
   stroke-linejoin: round;
   stroke-width: 1.7;
 }
-
+/* Branding and navigation styling: .ks-nav a:hover */
 .ks-nav a:hover {
   transform: translateX(2px);
   background: #294b3d;
   color: #fff;
 }
-
+/* Branding and navigation styling: .ks-nav a.active */
 .ks-nav a.active {
   background: #dce8c9;
   color: #1a3a2e;
 }
-
+/* Branding and navigation styling: .ks-nav a.active > span */
 .ks-nav a.active > span {
   color: #376b49;
 }
-
+/* Sidebar layout and navigation: .ks-sidebar-bottom */
 .ks-sidebar-bottom {
   margin-top: auto;
   padding: 16px 5px 0;
@@ -124,7 +125,7 @@
   gap: 10px;
   border-top: 1px solid #365746;
 }
-
+/* Styles for .ks-user-avatar */
 .ks-user-avatar {
   width: 35px;
   height: 35px;
@@ -136,13 +137,13 @@
   font-size: 13px;
   font-weight: 700;
 }
-
+/* Styles for .ks-user-copy */
 .ks-user-copy {
   min-width: 0;
   display: grid;
   gap: 3px;
 }
-
+/* Styles for .ks-user-copy strong */
 .ks-user-copy strong {
   overflow: hidden;
   color: #f2f5ef;
@@ -150,12 +151,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
+/* Styles for .ks-user-copy span */
 .ks-user-copy span {
   color: #a8b7ac;
   font-size: 10px;
 }
-
+/* Styles for .ks-logout */
 .ks-logout {
   margin-left: auto;
   padding: 4px;
@@ -164,18 +165,18 @@
   color: #b1c0b4;
   cursor: pointer;
 }
-
+/* Styles for .ks-logout:hover */
 .ks-logout:hover {
   color: #fff;
 }
-
+/* Sidebar layout and navigation: .ks-sidebar-error */
 .ks-sidebar-error {
   margin: 8px 0;
   color: #ffd8cf;
   font-size: 11px;
   line-height: 1.5;
 }
-
+/* Login and authentication UI: .ks-auth-loading, .ks-auth-error */
 .ks-auth-loading,
 .ks-auth-error {
   min-height: 100vh;
@@ -186,26 +187,26 @@
   color: #a34f42;
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
-
+/* Login and authentication UI: .ks-auth-loading .ks-login-spinner */
 .ks-auth-loading .ks-login-spinner {
   width: 28px;
   height: 28px;
   border-color: #b8c8b5;
   border-top-color: #2f6b45;
 }
-
+/* Crop-related UI styling: .ks-crop-empty */
 .ks-crop-empty {
   padding: 18px;
   color: #657167;
   font-size: 13px;
 }
-
+/* Styles for .ks-main */
 .ks-main {
   min-width: 0;
   width: calc(100% - 244px);
   margin-left: 244px;
 }
-
+/* Styles for .ks-topbar */
 .ks-topbar {
   min-height: 75px;
   padding: 12px clamp(24px, 4vw, 58px);
@@ -216,38 +217,38 @@
   border-bottom: 1px solid var(--ks-line);
   background: rgba(255, 255, 255, 0.86);
 }
-
+/* Styles for .ks-topbar-date */
 .ks-topbar-date {
   color: #536056;
   font-size: 12px;
   font-weight: 600;
 }
-
+/* Styles for .ks-topbar-context */
 .ks-topbar-context {
   margin-top: 3px;
   color: #929a91;
   font-size: 10px;
 }
-
+/* Styles for .ks-inline-link */
 .ks-inline-link {
   color: var(--ks-green);
   font-size: 11px;
   font-weight: 700;
 }
-
+/* Styles for .ks-workspace-tag */
 .ks-workspace-tag {
   color: #859182;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1px;
 }
-
+/* Styles for .ks-topbar-tools */
 .ks-topbar-tools {
   display: flex;
   align-items: center;
   gap: 20px;
 }
-
+/* Form controls and input styling: .ks-language-select */
 .ks-language-select {
   min-height: 32px;
   padding: 0 8px;
@@ -261,12 +262,12 @@
   font-size: 10px;
   white-space: nowrap;
 }
-
+/* Form controls and input styling: .ks-language-select > span:first-child */
 .ks-language-select > span:first-child {
   color: #758a61;
   font-size: 13px;
 }
-
+/* Form controls and input styling: .ks-language-select select */
 .ks-language-select select {
   max-width: 180px;
   border: 0;
@@ -277,23 +278,23 @@
   font-size: 10px;
   cursor: pointer;
 }
-
+/* Login and authentication UI: .ks-login-language */
 .ks-login-language {
   margin-bottom: 20px;
   display: flex;
   justify-content: flex-end;
 }
-
+/* Login and authentication UI: .ks-login-language .ks-language-select */
 .ks-login-language .ks-language-select {
   background: #fafbf8;
 }
-
+/* Styles for .ks-content */
 .ks-content {
   width: min(100%, 1200px);
   margin: 0 auto;
   padding: 35px clamp(24px, 4vw, 58px) 62px;
 }
-
+/* Styles for /* Target the main heading area for the professional coder / developer text * / .ks-page-heading */
 /* Target the main heading area for the professional coder / developer text */
 .ks-page-heading {
   margin-bottom: 26px;
@@ -302,14 +303,14 @@
   justify-content: space-between;
   gap: 20px;
 }
-
+/* Styles for .ks-eyebrow */
 .ks-eyebrow {
   color: #829174;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.25px;
 }
-
+/* Styles for .ks-page-heading h1 */
 .ks-page-heading h1 {
   margin: 8px 0 6px;
   color: #263b2d;
@@ -318,17 +319,17 @@
   letter-spacing: -1px;
   line-height: 1.2;
 }
-
+/* Styles for .ks-page-heading h1 > span */
 .ks-page-heading h1 > span {
   color: #d6a757;
   font-size: 20px;
 }
-
+/* Styles for .ks-page-heading > div > p:last-child */
 .ks-page-heading > div > p:last-child {
   color: var(--ks-muted);
   font-size: 12px;
 }
-
+/* Button appearance and interaction states: .ks-primary-button, .ks-light-button */
 .ks-primary-button,
 .ks-light-button {
   min-height: 41px;
@@ -347,29 +348,29 @@
   cursor: pointer;
   transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
-
+/* Button appearance and interaction states: .ks-primary-button:hover */
 .ks-primary-button:hover {
   transform: translateY(-2px);
   background: #326345;
   box-shadow: 0 6px 16px rgba(36, 76, 55, 0.17);
 }
-
+/* Button appearance and interaction states: .ks-primary-button:active, .ks-light-button:active */
 .ks-primary-button:active,
 .ks-light-button:active {
   transform: scale(0.98);
 }
-
+/* Button appearance and interaction states: .ks-heading-button */
 .ks-heading-button {
   white-space: nowrap;
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-grid */
 .ks-stat-grid {
   margin-bottom: 18px;
   display: grid;
   grid-template-columns: 1.1fr 1fr 1.18fr;
   gap: 15px;
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-card, .ks-panel */
 .ks-stat-card,
 .ks-panel {
   min-width: 0;
@@ -378,23 +379,23 @@
   background: #fff;
   box-shadow: 0 5px 18px rgba(34, 58, 39, 0.045);
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-card */
 .ks-stat-card {
   min-height: 171px;
   padding: 22px;
 }
-
+/* Crop-related UI styling: .ks-crop-stat */
 .ks-crop-stat {
   background: #fff;
 }
-
+/* Weather card and weather information styling: .ks-stat-top, .ks-weather-heading */
 .ks-stat-top,
 .ks-weather-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-icon */
 .ks-stat-icon {
   width: 34px;
   height: 34px;
@@ -405,17 +406,17 @@
   color: var(--ks-green);
   font-size: 20px;
 }
-
+/* Styles for .ks-icon-lime */
 .ks-icon-lime {
   background: #eef1df;
   color: #84974f;
 }
-
+/* Styles for .ks-icon-sun */
 .ks-icon-sun {
   background: #fbf0d8;
   color: #cb9742;
 }
-
+/* Dashboard layout and information panel styling: .ks-status-pill */
 .ks-status-pill {
   padding: 5px 9px;
   border-radius: 20px;
@@ -425,13 +426,13 @@
   font-weight: 700;
   white-space: nowrap;
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-trend */
 .ks-stat-trend {
   color: #638750;
   font-size: 9px;
   font-weight: 600;
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-label */
 .ks-stat-label {
   margin-top: 16px;
   color: #8b968a;
@@ -439,7 +440,7 @@
   font-weight: 700;
   letter-spacing: 1px;
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-card h2 */
 .ks-stat-card h2 {
   margin-top: 4px;
   color: #2c4433;
@@ -447,37 +448,37 @@
   font-weight: 600;
   letter-spacing: -0.5px;
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-card h2 small */
 .ks-stat-card h2 small {
   color: #647266;
   font-size: 13px;
   font-weight: 500;
 }
-
+/* Dashboard layout and information panel styling: .ks-stat-foot */
 .ks-stat-foot {
   margin-top: 3px;
   color: #899389;
   font-size: 10px;
 }
-
+/* Weather card and weather information styling: .ks-weather-card */
 .ks-weather-card {
   background: #fff;
 }
-
+/* Weather card and weather information styling: .ks-weather-heading */
 .ks-weather-heading {
   justify-content: flex-start;
   gap: 9px;
   color: #6f796d;
   font-size: 10px;
 }
-
+/* Weather card and weather information styling: .ks-weather-place */
 .ks-weather-place {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
+/* Weather card and weather information styling: .ks-weather-edit */
 .ks-weather-edit {
   width: 25px;
   height: 25px;
@@ -491,30 +492,30 @@
   font-size: 12px;
   cursor: pointer;
 }
-
+/* Weather card and weather information styling: .ks-weather-edit:hover */
 .ks-weather-edit:hover {
   background: #edf3e7;
 }
-
+/* Weather card and weather information styling: .ks-weather-main */
 .ks-weather-main {
   margin: 10px 0 7px;
   display: flex;
   align-items: center;
   gap: 11px;
 }
-
+/* Weather card and weather information styling: .ks-weather-main strong */
 .ks-weather-main strong {
   color: #334b38;
   font-size: 30px;
   font-weight: 500;
   letter-spacing: -1px;
 }
-
+/* Weather card and weather information styling: .ks-weather-main span */
 .ks-weather-main span {
   color: #626e62;
   font-size: 11px;
 }
-
+/* Weather card and weather information styling: .ks-weather-meta */
 .ks-weather-meta {
   padding-top: 8px;
   display: flex;
@@ -523,39 +524,39 @@
   color: #8b9288;
   font-size: 9px;
 }
-
+/* Weather card and weather information styling: .ks-weather-meta strong */
 .ks-weather-meta strong {
   margin-left: 4px;
   color: #536454;
 }
-
+/* Weather card and weather information styling: .ks-weather-loading, .ks-weather-fallback */
 .ks-weather-loading,
 .ks-weather-fallback {
   margin: 12px 0 8px;
   color: #7c867b;
   font-size: 10px;
 }
-
+/* Weather card and weather information styling: .ks-weather-fallback */
 .ks-weather-fallback {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
-
+/* Weather card and weather information styling: .ks-weather-fallback p */
 .ks-weather-fallback p {
   line-height: 1.5;
 }
-
+/* Weather card and weather information styling: .ks-weather-location-edit */
 .ks-weather-location-edit {
   margin-top: 8px;
 }
-
+/* Form controls and input styling: .ks-weather-location-edit form */
 .ks-weather-location-edit form {
   display: flex;
   gap: 6px;
 }
-
+/* Form controls and input styling: .ks-weather-location-edit input */
 .ks-weather-location-edit input {
   width: 100%;
   min-width: 0;
@@ -568,18 +569,18 @@
   font-family: inherit;
   font-size: 10px;
 }
-
+/* Form controls and input styling: .ks-weather-location-edit input:focus */
 .ks-weather-location-edit input:focus {
   border-color: #7d9b6a;
   box-shadow: 0 0 0 3px rgba(120, 147, 76, 0.13);
 }
-
+/* Weather card and weather information styling: .ks-weather-location-edit > p */
 .ks-weather-location-edit > p {
   margin-top: 5px;
   color: #a34f42;
   font-size: 9px;
 }
-
+/* Weather card and weather information styling: .ks-weather-search-results */
 .ks-weather-search-results {
   margin-top: 5px;
   display: grid;
@@ -588,7 +589,7 @@
   background: #fff;
   overflow: hidden;
 }
-
+/* Button appearance and interaction states: .ks-weather-search-results button */
 .ks-weather-search-results button {
   padding: 8px;
   border: 0;
@@ -600,33 +601,33 @@
   text-align: left;
   cursor: pointer;
 }
-
+/* Button appearance and interaction states: .ks-weather-search-results button:last-child */
 .ks-weather-search-results button:last-child {
   border-bottom: 0;
 }
-
+/* Button appearance and interaction states: .ks-weather-search-results button:hover */
 .ks-weather-search-results button:hover {
   background: #f5f7f1;
 }
-
+/* Dashboard layout and information panel styling: .ks-dashboard-grid */
 .ks-dashboard-grid {
   margin-bottom: 18px;
   display: grid;
   grid-template-columns: 1.08fr 0.92fr;
   gap: 15px;
 }
-
+/* Dashboard layout and information panel styling: .ks-panel */
 .ks-panel {
   padding: 24px;
 }
-
+/* Dashboard layout and information panel styling: .ks-panel-heading */
 .ks-panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
-
+/* Dashboard layout and information panel styling: .ks-panel-heading h2, .ks-advisory-copy h2 */
 .ks-panel-heading h2,
 .ks-advisory-copy h2 {
   margin-top: 5px;
@@ -635,7 +636,7 @@
   font-weight: 600;
   letter-spacing: -0.2px;
 }
-
+/* Styles for .ks-reminder-icon */
 .ks-reminder-icon {
   width: 34px;
   height: 34px;
@@ -645,14 +646,14 @@
   background: #f2f4eb;
   color: #788e54;
 }
-
+/* Styles for .ks-reminder-content */
 .ks-reminder-content {
   margin: 19px 0 14px;
   display: flex;
   align-items: center;
   gap: 13px;
 }
-
+/* Styles for .ks-reminder-date */
 .ks-reminder-date {
   width: 48px;
   height: 53px;
@@ -664,36 +665,36 @@
   color: #74864d;
   font-size: 9px;
 }
-
+/* Styles for .ks-reminder-date strong */
 .ks-reminder-date strong {
   color: #35523a;
   font-size: 19px;
   line-height: 1.1;
 }
-
+/* Styles for .ks-reminder-content h3 */
 .ks-reminder-content h3 {
   color: #3b4c3e;
   font-size: 12px;
   font-weight: 600;
 }
-
+/* Styles for .ks-reminder-content p */
 .ks-reminder-content p {
   margin-top: 4px;
   color: #838c82;
   font-size: 10px;
 }
-
+/* Weather card and weather information styling: .ks-weather-advice */
 .ks-weather-advice {
   padding-top: 11px;
   border-top: 1px solid #eff0e9;
   color: #75864f;
   font-size: 10px;
 }
-
+/* Dashboard layout and information panel styling: .ks-log-preview .ks-panel-heading */
 .ks-log-preview .ks-panel-heading {
   margin-bottom: 15px;
 }
-
+/* Styles for .ks-mini-entry */
 .ks-mini-entry {
   padding: 10px 0;
   display: flex;
@@ -701,7 +702,7 @@
   gap: 10px;
   border-top: 1px solid #f0f1ec;
 }
-
+/* Styles for .ks-mini-dot */
 .ks-mini-dot {
   width: 8px;
   height: 8px;
@@ -710,26 +711,26 @@
   border: 2px solid #729257;
   border-radius: 50%;
 }
-
+/* Styles for .ks-mini-entry div */
 .ks-mini-entry div {
   display: flex;
   justify-content: space-between;
   flex: 1;
   gap: 10px;
 }
-
+/* Styles for .ks-mini-entry strong */
 .ks-mini-entry strong {
   color: #526052;
   font-size: 10px;
   font-weight: 600;
 }
-
+/* Styles for .ks-mini-entry div span */
 .ks-mini-entry div span {
   color: #959c93;
   font-size: 9px;
   white-space: nowrap;
 }
-
+/* Styles for .ks-advisory-card */
 .ks-advisory-card {
   margin-bottom: 18px;
   padding: 24px;
@@ -738,7 +739,7 @@
   gap: 14px;
   background: #fff;
 }
-
+/* Styles for .ks-advisory-symbol */
 .ks-advisory-symbol {
   width: 39px;
   height: 39px;
@@ -750,22 +751,22 @@
   color: #759252;
   font-size: 18px;
 }
-
+/* Styles for .ks-advisory-copy */
 .ks-advisory-copy {
   min-width: 0;
   flex: 1;
 }
-
+/* Styles for .ks-advisory-copy h2 */
 .ks-advisory-copy h2 {
   margin: 4px 0;
   font-size: 13px;
 }
-
+/* Styles for .ks-advisory-copy > p:not(.ks-eyebrow) */
 .ks-advisory-copy > p:not(.ks-eyebrow) {
   color: #798479;
   font-size: 10px;
 }
-
+/* Styles for .ks-feedback-confirmation */
 .ks-feedback-confirmation {
   display: inline-block;
   margin-top: 5px;
@@ -773,12 +774,12 @@
   font-size: 9px;
   font-weight: 600;
 }
-
+/* Styles for .ks-feedback-actions */
 .ks-feedback-actions {
   display: flex;
   gap: 7px;
 }
-
+/* Button appearance and interaction states: .ks-feedback-actions button */
 .ks-feedback-actions button {
   min-height: 32px;
   padding: 0 11px;
@@ -792,14 +793,14 @@
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
 }
-
+/* Button appearance and interaction states: .ks-feedback-actions button:hover, .ks-feedback-actions button.selected */
 .ks-feedback-actions button:hover,
 .ks-feedback-actions button.selected {
   border-color: #4f784e;
   background: #4f784e;
   color: #fff;
 }
-
+/* Produce traceability and batch UI styling: .ks-trace-banner */
 .ks-trace-banner {
   position: relative;
   min-height: 147px;
@@ -813,25 +814,25 @@
   background: #244c37;
   color: #fff;
 }
-
+/* Produce traceability and batch UI styling: .ks-trace-banner .ks-eyebrow */
 .ks-trace-banner .ks-eyebrow {
   color: #c1d49f;
 }
-
+/* Produce traceability and batch UI styling: .ks-trace-banner h2 */
 .ks-trace-banner h2 {
   margin: 7px 0 5px;
   font-size: 22px;
   font-weight: 500;
   letter-spacing: -0.5px;
 }
-
+/* Produce traceability and batch UI styling: .ks-trace-banner p */
 .ks-trace-banner p {
   max-width: 58ch;
   color: rgba(255, 255, 255, 0.72);
   font-size: 12px;
   line-height: 1.5;
 }
-
+/* Button appearance and interaction states: .ks-light-button */
 .ks-light-button {
   position: relative;
   z-index: 1;
@@ -839,12 +840,12 @@
   background: #eff3e6;
   color: #31563b;
 }
-
+/* Button appearance and interaction states: .ks-light-button:hover */
 .ks-light-button:hover {
   transform: translateY(-2px);
   background: #dce8c7;
 }
-
+/* Styles for .ks-banner-leaf */
 .ks-banner-leaf {
   position: absolute;
   right: 160px;
@@ -854,7 +855,7 @@
   line-height: 1;
   transform: rotate(-20deg);
 }
-
+/* Styles for .ks-log-summary */
 .ks-log-summary {
   margin-bottom: 19px;
   padding: 20px 22px;
@@ -865,7 +866,7 @@
   border-radius: 14px;
   background: #fff;
 }
-
+/* Crop-related UI styling: .ks-log-crop-icon */
 .ks-log-crop-icon {
   width: 40px;
   height: 40px;
@@ -876,34 +877,34 @@
   color: #54784a;
   font-size: 21px;
 }
-
+/* Styles for .ks-log-summary > div */
 .ks-log-summary > div {
   display: grid;
   gap: 4px;
 }
-
+/* Styles for .ks-log-summary > div > span */
 .ks-log-summary > div > span {
   color: #87917f;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.8px;
 }
-
+/* Styles for .ks-log-summary strong */
 .ks-log-summary strong {
   color: #334b38;
   font-size: 15px;
 }
-
+/* Styles for .ks-log-summary strong small */
 .ks-log-summary strong small {
   color: #7b857a;
   font-size: 10px;
   font-weight: 400;
 }
-
+/* Dashboard layout and information panel styling: .ks-log-summary .ks-status-pill */
 .ks-log-summary .ks-status-pill {
   margin-left: auto;
 }
-
+/* Form controls and input styling: .ks-entry-form */
 .ks-entry-form {
   margin-bottom: 19px;
   padding: 24px;
@@ -911,11 +912,11 @@
   border-radius: 14px;
   background: #fff;
 }
-
+/* Form controls and input styling: .ks-entry-form > .ks-panel-heading */
 .ks-entry-form > .ks-panel-heading {
   margin-bottom: 17px;
 }
-
+/* Button appearance and interaction states: .ks-close-button */
 .ks-close-button {
   width: 28px;
   height: 28px;
@@ -926,13 +927,13 @@
   font-size: 20px;
   cursor: pointer;
 }
-
+/* Form controls and input styling: .ks-form-grid */
 .ks-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 13px;
 }
-
+/* Form controls and input styling: .ks-entry-form label */
 .ks-entry-form label {
   display: grid;
   gap: 6px;
@@ -940,7 +941,7 @@
   font-size: 10px;
   font-weight: 600;
 }
-
+/* Login and authentication UI: .ks-entry-form input, .ks-entry-form select, .ks-entry-form textarea, .ks-login-form input */
 .ks-entry-form input,
 .ks-entry-form select,
 .ks-entry-form textarea,
@@ -956,7 +957,7 @@
   font-family: inherit;
   font-size: 11px;
 }
-
+/* Login and authentication UI: .ks-entry-form input:focus, .ks-entry-form select:focus, .ks-entry-form textarea:focus, .ks-login-form input:focus */
 .ks-entry-form input:focus,
 .ks-entry-form select:focus,
 .ks-entry-form textarea:focus,
@@ -964,27 +965,27 @@
   border-color: #7d9b6a;
   box-shadow: 0 0 0 3px rgba(120, 147, 76, 0.13);
 }
-
+/* Styles for .ks-note-label */
 .ks-note-label {
   margin: 13px 0;
 }
-
+/* Form controls and input styling: .ks-entry-form textarea */
 .ks-entry-form textarea {
   resize: vertical;
 }
-
+/* Button appearance and interaction states: .ks-entry-form > .ks-primary-button */
 .ks-entry-form > .ks-primary-button {
   min-height: 37px;
 }
-
+/* Timeline and history styling: .ks-timeline-panel */
 .ks-timeline-panel {
   padding: 24px;
 }
-
+/* Timeline and history styling: .ks-timeline-panel > .ks-panel-heading */
 .ks-timeline-panel > .ks-panel-heading {
   margin-bottom: 15px;
 }
-
+/* Styles for .ks-entry-count */
 .ks-entry-count {
   padding: 5px 8px;
   border-radius: 5px;
@@ -992,12 +993,12 @@
   color: #687966;
   font-size: 9px;
 }
-
+/* Timeline and history styling: .ks-timeline */
 .ks-timeline {
   position: relative;
   padding-left: 4px;
 }
-
+/* Timeline and history styling: .ks-timeline::before */
 .ks-timeline::before {
   position: absolute;
   top: 12px;
@@ -1007,7 +1008,7 @@
   content: "";
   background: #dfe7d8;
 }
-
+/* Timeline and history styling: .ks-timeline-entry */
 .ks-timeline-entry {
   position: relative;
   min-height: 81px;
@@ -1017,7 +1018,7 @@
   gap: 18px;
   border-top: 1px solid #f0f1ec;
 }
-
+/* Timeline and history styling: .ks-timeline-marker */
 .ks-timeline-marker {
   position: absolute;
   top: 16px;
@@ -1033,42 +1034,42 @@
   color: #628352;
   font-size: 11px;
 }
-
+/* Timeline and history styling: .ks-timeline-date */
 .ks-timeline-date {
   display: grid;
   align-content: start;
   gap: 4px;
 }
-
+/* Timeline and history styling: .ks-timeline-date strong */
 .ks-timeline-date strong {
   color: #4b6848;
   font-size: 10px;
 }
-
+/* Timeline and history styling: .ks-timeline-date span */
 .ks-timeline-date span {
   color: #8a9388;
   font-size: 9px;
 }
-
+/* Timeline and history styling: .ks-timeline-detail h3 */
 .ks-timeline-detail h3 {
   color: #3f5042;
   font-size: 11px;
   font-weight: 600;
 }
-
+/* Timeline and history styling: .ks-timeline-detail p */
 .ks-timeline-detail p {
   margin-top: 4px;
   color: #7c867b;
   font-size: 10px;
   line-height: 1.6;
 }
-
+/* Crop-related UI styling: .ks-crop-timeline */
 .ks-crop-timeline {
   position: relative;
   display: grid;
   gap: 17px;
 }
-
+/* Crop-related UI styling: .ks-crop-timeline::before */
 .ks-crop-timeline::before {
   position: absolute;
   top: 33px;
@@ -1078,7 +1079,7 @@
   content: "";
   background: #dbe4d3;
 }
-
+/* Crop-related UI styling: .ks-crop-timeline-entry */
 .ks-crop-timeline-entry {
   position: relative;
   display: grid;
@@ -1086,7 +1087,7 @@
   align-items: start;
   gap: 17px;
 }
-
+/* Crop-related UI styling: .ks-crop-date-tile */
 .ks-crop-date-tile {
   width: 58px;
   min-height: 63px;
@@ -1099,7 +1100,7 @@
   background: #fff;
   box-shadow: 0 3px 12px rgba(34, 58, 39, 0.035);
 }
-
+/* Crop-related UI styling: .ks-crop-date-tile > span */
 .ks-crop-date-tile > span {
   color: #74864d;
   font-size: 9px;
@@ -1107,7 +1108,7 @@
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
-
+/* Crop-related UI styling: .ks-crop-date-tile > strong */
 .ks-crop-date-tile > strong {
   margin-top: 1px;
   color: #35523a;
@@ -1115,7 +1116,7 @@
   font-weight: 600;
   line-height: 1.1;
 }
-
+/* Crop-related UI styling: .ks-crop-timeline-marker */
 .ks-crop-timeline-marker {
   position: absolute;
   z-index: 1;
@@ -1128,11 +1129,11 @@
   background: #78934c;
   box-shadow: 0 0 0 1px #cbd9be;
 }
-
+/* Crop-related UI styling: .ks-crop-entry-card */
 .ks-crop-entry-card {
   padding: 23px 24px;
 }
-
+/* Crop-related UI styling: .ks-crop-entry-card h2 */
 .ks-crop-entry-card h2 {
   margin-top: 7px;
   color: #304233;
@@ -1140,14 +1141,14 @@
   font-weight: 600;
   letter-spacing: -0.25px;
 }
-
+/* Crop-related UI styling: .ks-crop-entry-description */
 .ks-crop-entry-description {
   margin-top: 7px;
   color: #7c867b;
   font-size: 11px;
   line-height: 1.7;
 }
-
+/* Crop-related UI styling: .ks-crop-entry-photo */
 .ks-crop-entry-photo {
   width: min(100%, 250px);
   height: 128px;
@@ -1156,40 +1157,40 @@
   border-radius: 9px;
   object-fit: cover;
 }
-
+/* Form controls and input styling: .ks-photo-field input[type="file"] */
 .ks-photo-field input[type="file"] {
   min-height: auto;
   padding: 8px;
   color: #718071;
   font-size: 10px;
 }
-
+/* Styles for .ks-photo-field > span */
 .ks-photo-field > span {
   color: #8a9488;
   font-size: 9px;
   font-weight: 400;
 }
-
+/* Styles for .ks-photo-error */
 .ks-photo-error {
   margin: 8px 0;
   color: #a34f42;
   font-size: 10px;
 }
-
+/* Styles for .ks-photo-preview */
 .ks-photo-preview {
   margin: 12px 0;
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
+/* Styles for .ks-photo-preview img */
 .ks-photo-preview img {
   width: 76px;
   height: 62px;
   border-radius: 7px;
   object-fit: cover;
 }
-
+/* Button appearance and interaction states: .ks-photo-preview button */
 .ks-photo-preview button {
   padding: 6px 10px;
   border: 1px solid #e3e8de;
@@ -1200,11 +1201,11 @@
   font-size: 10px;
   cursor: pointer;
 }
-
+/* Button appearance and interaction states: .ks-photo-preview button:hover */
 .ks-photo-preview button:hover {
   background: #f2f5ec;
 }
-
+/* Styles for .ks-advisory-tip */
 .ks-advisory-tip {
   margin-top: 17px;
   display: flex;
@@ -1212,7 +1213,7 @@
   gap: 14px;
   background: #fff;
 }
-
+/* Styles for .ks-tip-icon */
 .ks-tip-icon {
   width: 35px;
   height: 35px;
@@ -1223,44 +1224,44 @@
   background: #f7edda;
   color: #bd914a;
 }
-
+/* Styles for .ks-advisory-tip h2 */
 .ks-advisory-tip h2 {
   margin: 6px 0;
   color: #3c4b3d;
   font-size: 14px;
 }
-
+/* Styles for .ks-advisory-tip div > p:last-child */
 .ks-advisory-tip div > p:last-child {
   max-width: 620px;
   color: #7d877c;
   font-size: 10px;
   line-height: 1.7;
 }
-
+/* Styles for .ks-advisory-grid */
 .ks-advisory-grid {
   margin-bottom: 24px;
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(250px, 0.75fr);
   gap: 16px;
 }
-
+/* Dashboard layout and information panel styling: .ks-recommendation-panel */
 .ks-recommendation-panel {
   padding: 24px;
   background:
     radial-gradient(circle at 100% 0, rgba(219, 232, 195, 0.32), transparent 34%),
     #fff;
 }
-
+/* Dashboard layout and information panel styling: .ks-advisory-panel-heading */
 .ks-advisory-panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
+/* Styles for .ks-recommendation-age */
 .ks-recommendation-age {
   margin-top: 22px;
 }
-
+/* Dashboard layout and information panel styling: .ks-recommendation-panel > h2 */
 .ks-recommendation-panel > h2 {
   margin-top: 7px;
   color: #304634;
@@ -1268,7 +1269,7 @@
   font-weight: 600;
   letter-spacing: -0.6px;
 }
-
+/* Styles for .ks-recommendation-description */
 .ks-recommendation-description {
   max-width: 600px;
   margin-top: 9px;
@@ -1276,7 +1277,7 @@
   font-size: 11px;
   line-height: 1.8;
 }
-
+/* Styles for .ks-recommendation-meta */
 .ks-recommendation-meta {
   margin-top: 22px;
   padding: 15px 0;
@@ -1286,14 +1287,14 @@
   border-top: 1px solid #edf0e9;
   border-bottom: 1px solid #edf0e9;
 }
-
+/* Weather card and weather information styling: .ks-recommendation-meta > div, .ks-advisory-weather-stats > div */
 .ks-recommendation-meta > div,
 .ks-advisory-weather-stats > div {
   display: grid;
   align-content: start;
   gap: 5px;
 }
-
+/* Weather card and weather information styling: .ks-recommendation-meta > div > span, .ks-advisory-weather-stats > div > span */
 .ks-recommendation-meta > div > span,
 .ks-advisory-weather-stats > div > span {
   color: #929b8e;
@@ -1301,14 +1302,14 @@
   font-weight: 700;
   letter-spacing: 0.75px;
 }
-
+/* Styles for .ks-recommendation-meta strong */
 .ks-recommendation-meta strong {
   color: #4b5a4c;
   font-size: 10px;
   font-weight: 600;
   line-height: 1.5;
 }
-
+/* Styles for .ks-safety-note */
 .ks-safety-note {
   margin-top: 13px;
   display: flex;
@@ -1318,56 +1319,56 @@
   font-size: 9px;
   line-height: 1.6;
 }
-
+/* Styles for .ks-safety-note > span */
 .ks-safety-note > span {
   color: #879d67;
   font-size: 12px;
 }
-
+/* Weather card and weather information styling: .ks-advisory-weather */
 .ks-advisory-weather {
   padding: 22px;
   background: #fff;
 }
-
+/* Weather card and weather information styling: .ks-advisory-weather .ks-panel-heading */
 .ks-advisory-weather .ks-panel-heading {
   align-items: flex-start;
 }
-
+/* Weather card and weather information styling: .ks-advisory-weather .ks-panel-heading h2 */
 .ks-advisory-weather .ks-panel-heading h2 {
   font-size: 14px;
 }
-
+/* Weather card and weather information styling: .ks-weather-location */
 .ks-weather-location {
   margin-top: 18px;
   color: #7f897e;
   font-size: 10px;
 }
-
+/* Styles for .ks-advisory-temperature */
 .ks-advisory-temperature {
   margin: 3px 0 13px;
   display: flex;
   align-items: center;
   gap: 11px;
 }
-
+/* Styles for .ks-advisory-temperature strong */
 .ks-advisory-temperature strong {
   color: #334b38;
   font-size: 39px;
   font-weight: 500;
   letter-spacing: -1.5px;
 }
-
+/* Styles for .ks-advisory-temperature span */
 .ks-advisory-temperature span {
   color: #657165;
   font-size: 10px;
 }
-
+/* Weather card and weather information styling: .ks-weather-advice-large */
 .ks-weather-advice-large {
   padding-top: 12px;
   padding-bottom: 12px;
   line-height: 1.6;
 }
-
+/* Weather card and weather information styling: .ks-advisory-weather-stats */
 .ks-advisory-weather-stats {
   padding-top: 13px;
   display: grid;
@@ -1375,13 +1376,13 @@
   gap: 12px;
   border-top: 1px solid #f0eee7;
 }
-
+/* Weather card and weather information styling: .ks-advisory-weather-stats strong */
 .ks-advisory-weather-stats strong {
   color: #465848;
   font-size: 14px;
   font-weight: 600;
 }
-
+/* Styles for .ks-advisory-section-heading */
 .ks-advisory-section-heading {
   margin: 0 0 13px;
   display: flex;
@@ -1389,14 +1390,14 @@
   justify-content: space-between;
   gap: 15px;
 }
-
+/* Styles for .ks-advisory-section-heading h2 */
 .ks-advisory-section-heading h2 {
   margin-top: 5px;
   color: #304233;
   font-size: 16px;
   font-weight: 600;
 }
-
+/* Styles for .ks-advisory-section-heading > span */
 .ks-advisory-section-heading > span {
   color: #99a096;
   font-size: 8px;
@@ -1404,7 +1405,7 @@
   letter-spacing: 0.6px;
   text-align: right;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-status */
 .ks-batch-status {
   display: inline-flex;
   align-items: center;
@@ -1415,7 +1416,7 @@
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-status > span */
 .ks-batch-status > span {
   width: 7px;
   height: 7px;
@@ -1423,25 +1424,25 @@
   background: #78a45c;
   box-shadow: 0 0 0 3px #e8f0e0;
 }
-
+/* Produce traceability and batch UI styling: .ks-trace-layout */
 .ks-trace-layout {
   margin-bottom: 17px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 255px;
   gap: 16px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-card */
 .ks-batch-card {
   padding: 24px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-card-top */
 .ks-batch-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-number */
 .ks-batch-number {
   margin-top: 9px;
   color: #334b38;
@@ -1449,7 +1450,7 @@
   font-weight: 600;
   letter-spacing: -0.7px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-produce */
 .ks-batch-produce {
   margin: 16px 0;
   padding-bottom: 16px;
@@ -1458,14 +1459,14 @@
   gap: 14px;
   border-bottom: 1px solid #eef0e9;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-produce img */
 .ks-batch-produce img {
   width: 81px;
   height: 68px;
   border-radius: 7px;
   object-fit: cover;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-produce > div > span, .ks-batch-facts > div > span */
 .ks-batch-produce > div > span,
 .ks-batch-facts > div > span {
   color: #929b8e;
@@ -1473,35 +1474,35 @@
   font-weight: 700;
   letter-spacing: 0.8px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-produce h2 */
 .ks-batch-produce h2 {
   margin: 4px 0;
   color: #304634;
   font-size: 16px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-produce p */
 .ks-batch-produce p {
   color: #818a7f;
   font-size: 10px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-facts */
 .ks-batch-facts {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px 12px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-facts > div */
 .ks-batch-facts > div {
   display: grid;
   gap: 4px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-facts strong */
 .ks-batch-facts strong {
   color: #465548;
   font-size: 10px;
   font-weight: 600;
 }
-
+/* Produce traceability and batch UI styling: .ks-qr-card */
 .ks-qr-card {
   padding: 24px;
   display: flex;
@@ -1509,7 +1510,7 @@
   flex-direction: column;
   text-align: center;
 }
-
+/* Produce traceability and batch UI styling: .ks-qr-wrap */
 .ks-qr-wrap {
   margin: 15px 0 10px;
   padding: 8px;
@@ -1517,25 +1518,25 @@
   border-radius: 8px;
   background: #fff;
 }
-
+/* Produce traceability and batch UI styling: .ks-qr-wrap svg */
 .ks-qr-wrap svg {
   display: block;
   max-width: 100%;
   height: auto;
 }
-
+/* Produce traceability and batch UI styling: .ks-qr-card h2 */
 .ks-qr-card h2 {
   color: #354a38;
   font-size: 13px;
 }
-
+/* Produce traceability and batch UI styling: .ks-qr-card > p:not(.ks-eyebrow) */
 .ks-qr-card > p:not(.ks-eyebrow) {
   margin-top: 5px;
   color: #818a80;
   font-size: 9px;
   line-height: 1.5;
 }
-
+/* Produce traceability and batch UI styling: .ks-qr-url */
 .ks-qr-url {
   width: 100%;
   margin-top: 10px;
@@ -1545,15 +1546,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
+/* Form controls and input styling: .ks-input-history */
 .ks-input-history {
   padding: 24px;
 }
-
+/* Form controls and input styling: .ks-input-history > .ks-panel-heading */
 .ks-input-history > .ks-panel-heading {
   margin-bottom: 12px;
 }
-
+/* Timeline and history styling: .ks-history-item */
 .ks-history-item {
   min-height: 54px;
   display: flex;
@@ -1561,7 +1562,7 @@
   gap: 10px;
   border-top: 1px solid #f0f1ec;
 }
-
+/* Timeline and history styling: .ks-history-check */
 .ks-history-check {
   width: 23px;
   height: 23px;
@@ -1572,38 +1573,38 @@
   color: #648451;
   font-size: 10px;
 }
-
+/* Timeline and history styling: .ks-history-item > div */
 .ks-history-item > div {
   display: grid;
   gap: 3px;
 }
-
+/* Timeline and history styling: .ks-history-item strong */
 .ks-history-item strong {
   color: #4b594b;
   font-size: 10px;
 }
-
+/* Timeline and history styling: .ks-history-item > div > span */
 .ks-history-item > div > span {
   color: #8c958a;
   font-size: 9px;
 }
-
+/* Timeline and history styling: .ks-history-item time */
 .ks-history-item time {
   margin-left: auto;
   color: #8b9489;
   font-size: 9px;
 }
-
+/* Form controls and input styling: .ks-batch-form */
 .ks-batch-form {
   margin-bottom: 20px;
 }
-
+/* Form controls and input styling: .ks-batch-inputs */
 .ks-batch-inputs {
   margin: 18px 0;
   padding-top: 16px;
   border-top: 1px solid #edf0e9;
 }
-
+/* Form controls and input styling: .ks-batch-input-heading, .ks-batch-list-header, .ks-batch-list-bottom */
 .ks-batch-input-heading,
 .ks-batch-list-header,
 .ks-batch-list-bottom {
@@ -1612,17 +1613,17 @@
   justify-content: space-between;
   gap: 14px;
 }
-
+/* Form controls and input styling: .ks-batch-input-heading */
 .ks-batch-input-heading {
   margin-bottom: 12px;
 }
-
+/* Form controls and input styling: .ks-batch-input-heading h3 */
 .ks-batch-input-heading h3 {
   margin-top: 5px;
   color: #344838;
   font-size: 13px;
 }
-
+/* Button appearance and interaction states: .ks-secondary-button */
 .ks-secondary-button {
   min-height: 34px;
   padding: 0 11px;
@@ -1639,12 +1640,12 @@
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
 }
-
+/* Button appearance and interaction states: .ks-secondary-button:hover */
 .ks-secondary-button:hover {
   border-color: #cbd9be;
   background: #edf3e7;
 }
-
+/* Form controls and input styling: .ks-input-row */
 .ks-input-row {
   margin-top: 9px;
   padding: 12px;
@@ -1655,7 +1656,7 @@
   border-radius: 9px;
   background: #fcfcfa;
 }
-
+/* Form controls and input styling: .ks-input-row label */
 .ks-input-row label {
   display: grid;
   gap: 5px;
@@ -1663,7 +1664,7 @@
   font-size: 9px;
   font-weight: 600;
 }
-
+/* Form controls and input styling: .ks-input-row input, .ks-input-row select, .ks-batch-form .ks-form-grid select */
 .ks-input-row input,
 .ks-input-row select,
 .ks-batch-form .ks-form-grid select {
@@ -1679,43 +1680,43 @@
   font-family: inherit;
   font-size: 10px;
 }
-
+/* Form controls and input styling: .ks-input-row :where(input, select):focus, .ks-batch-form .ks-form-grid select:focus */
 .ks-input-row :where(input, select):focus,
 .ks-batch-form .ks-form-grid select:focus {
   border-color: #7d9b6a;
   box-shadow: 0 0 0 3px rgba(120, 147, 76, 0.13);
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-grid */
 .ks-batch-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-card */
 .ks-batch-list-card {
   padding: 21px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-header */
 .ks-batch-list-header {
   align-items: flex-start;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-header h2 */
 .ks-batch-list-header h2 {
   margin: 6px 0 3px;
   color: #304233;
   font-size: 17px;
   font-weight: 600;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-header > div > span */
 .ks-batch-list-header > div > span {
   color: #849084;
   font-size: 10px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-header .ks-status-pill */
 .ks-batch-list-header .ks-status-pill {
   flex: 0 0 auto;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-details */
 .ks-batch-list-details {
   margin: 16px 0;
   padding: 14px 0;
@@ -1725,30 +1726,30 @@
   border-top: 1px solid #edf0e9;
   border-bottom: 1px solid #edf0e9;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-details > div */
 .ks-batch-list-details > div {
   display: grid;
   align-content: start;
   gap: 5px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-details > div > span */
 .ks-batch-list-details > div > span {
   color: #929b8e;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.65px;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-details strong */
 .ks-batch-list-details strong {
   color: #4b594b;
   font-size: 10px;
   font-weight: 600;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-bottom */
 .ks-batch-list-bottom {
   align-items: center;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-qr-thumb */
 .ks-batch-qr-thumb {
   width: 72px;
   height: 72px;
@@ -1758,19 +1759,19 @@
   border-radius: 8px;
   background: #fff;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-qr-thumb svg */
 .ks-batch-qr-thumb svg {
   width: 100%;
   height: 100%;
 }
-
+/* Produce traceability and batch UI styling: .ks-batch-actions */
 .ks-batch-actions {
   display: flex;
   align-items: flex-end;
   flex-direction: column;
   gap: 10px;
 }
-
+/* Produce traceability and batch UI styling: .ks-public-trace */
 .ks-public-trace {
   box-sizing: border-box;
   min-height: 100vh;
@@ -1779,25 +1780,25 @@
   color: #25342b;
   font-family: "Product Sans", ui-sans-serif, system-ui, sans-serif;
 }
-
+/* Produce traceability and batch UI styling: .ks-public-trace *, .ks-public-trace *::before, .ks-public-trace *::after */
 .ks-public-trace *,
 .ks-public-trace *::before,
 .ks-public-trace *::after {
   box-sizing: border-box;
 }
-
+/* Styles for .ks-public-shell */
 .ks-public-shell {
   width: min(100%, 620px);
   margin: 0 auto;
 }
-
+/* Styles for .ks-public-header */
 .ks-public-header {
   margin-bottom: 18px;
   display: flex;
   align-items: center;
   gap: 9px;
 }
-
+/* Branding and navigation styling: .ks-public-header .ks-brand-icon, .ks-public-footer .ks-brand-icon */
 .ks-public-header .ks-brand-icon,
 .ks-public-footer .ks-brand-icon {
   width: 32px;
@@ -1806,14 +1807,14 @@
   border-radius: 10px;
   font-size: 17px;
 }
-
+/* Branding and navigation styling: .ks-public-brand */
 .ks-public-brand {
   color: #244c37;
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.4px;
 }
-
+/* Styles for .ks-public-verified */
 .ks-public-verified {
   margin-left: auto;
   padding: 7px 10px;
@@ -1827,7 +1828,7 @@
   font-size: 9px;
   font-weight: 700;
 }
-
+/* Styles for .ks-public-verified > span */
 .ks-public-verified > span {
   width: 15px;
   height: 15px;
@@ -1838,7 +1839,7 @@
   color: #fff;
   font-size: 10px;
 }
-
+/* Styles for .ks-public-card */
 .ks-public-card {
   margin-bottom: 13px;
   padding: 23px;
@@ -1847,7 +1848,7 @@
   background: #fff;
   box-shadow: 0 5px 18px rgba(34, 58, 39, 0.045);
 }
-
+/* Styles for .ks-public-origin h1 */
 .ks-public-origin h1 {
   margin-top: 8px;
   color: #2e4533;
@@ -1855,13 +1856,13 @@
   font-weight: 600;
   letter-spacing: -1px;
 }
-
+/* Styles for .ks-public-quantity */
 .ks-public-quantity {
   margin-top: 6px;
   color: #7b867a;
   font-size: 11px;
 }
-
+/* Styles for .ks-public-facts */
 .ks-public-facts {
   margin-top: 20px;
   padding-top: 16px;
@@ -1870,41 +1871,41 @@
   gap: 17px 12px;
   border-top: 1px solid #edf0e9;
 }
-
+/* Styles for .ks-public-facts > div */
 .ks-public-facts > div {
   display: grid;
   gap: 5px;
 }
-
+/* Styles for .ks-public-facts > div > span */
 .ks-public-facts > div > span {
   color: #929b8e;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.8px;
 }
-
+/* Styles for .ks-public-facts strong */
 .ks-public-facts strong {
   color: #465548;
   font-size: 11px;
   font-weight: 600;
   line-height: 1.5;
 }
-
+/* Timeline and history styling: .ks-public-history .ks-panel-heading */
 .ks-public-history .ks-panel-heading {
   margin-bottom: 12px;
 }
-
+/* Timeline and history styling: .ks-public-history .ks-panel-heading h2 */
 .ks-public-history .ks-panel-heading h2 {
   margin-top: 6px;
   color: #354a38;
   font-size: 16px;
 }
-
+/* Timeline and history styling: .ks-public-timeline */
 .ks-public-timeline {
   position: relative;
   padding-left: 19px;
 }
-
+/* Timeline and history styling: .ks-public-timeline::before */
 .ks-public-timeline::before {
   position: absolute;
   top: 8px;
@@ -1914,13 +1915,13 @@
   content: "";
   background: #dbe4d3;
 }
-
+/* Timeline and history styling: .ks-public-timeline-item */
 .ks-public-timeline-item {
   position: relative;
   padding: 10px 0 13px;
   border-top: 1px solid #f0f1ec;
 }
-
+/* Timeline and history styling: .ks-public-timeline-marker */
 .ks-public-timeline-marker {
   position: absolute;
   top: 15px;
@@ -1932,14 +1933,14 @@
   background: #78934c;
   box-shadow: 0 0 0 1px #cbd9be;
 }
-
+/* Timeline and history styling: .ks-public-timeline-item h3 */
 .ks-public-timeline-item h3 {
   margin-top: 5px;
   color: #3f5042;
   font-size: 12px;
   font-weight: 600;
 }
-
+/* Timeline and history styling: .ks-public-timeline-item > p:last-child, .ks-public-empty */
 .ks-public-timeline-item > p:last-child,
 .ks-public-empty {
   margin-top: 5px;
@@ -1947,7 +1948,7 @@
   font-size: 10px;
   line-height: 1.6;
 }
-
+/* Styles for .ks-public-footer */
 .ks-public-footer {
   padding: 8px 4px 0;
   display: flex;
@@ -1957,7 +1958,7 @@
   font-size: 11px;
   font-weight: 700;
 }
-
+/* Branding and navigation styling: .ks-public-footer .ks-brand-icon */
 .ks-public-footer .ks-brand-icon {
   width: 25px;
   height: 25px;
@@ -1965,7 +1966,7 @@
   border-radius: 8px;
   font-size: 13px;
 }
-
+/* Styles for .ks-public-footer p */
 .ks-public-footer p {
   margin-left: auto;
   color: #8a9488;
@@ -1973,33 +1974,33 @@
   font-weight: 400;
   text-align: right;
 }
-
+/* Styles for .ks-public-not-found */
 .ks-public-not-found {
   margin-top: min(24vh, 170px);
   text-align: center;
 }
-
+/* Branding and navigation styling: .ks-public-not-found .ks-brand-icon */
 .ks-public-not-found .ks-brand-icon {
   margin: 0 auto 15px;
 }
-
+/* Styles for .ks-public-not-found h1 */
 .ks-public-not-found h1 {
   color: #304233;
   font-size: 22px;
 }
-
+/* Styles for .ks-public-not-found > p */
 .ks-public-not-found > p {
   margin: 8px 0 15px;
   color: #7c867b;
   font-size: 11px;
   line-height: 1.6;
 }
-
+/* Button appearance and interaction states: .ks-public-trace :where(a, button):focus-visible */
 .ks-public-trace :where(a, button):focus-visible {
   outline: 3px solid rgba(120, 147, 76, 0.52);
   outline-offset: 3px;
 }
-
+/* Login and authentication UI: .ks-login-page */
 .ks-login-page {
   min-height: 100vh;
   display: grid;
@@ -2008,7 +2009,7 @@
   color: var(--ks-ink);
   font-family: "Product Sans", ui-sans-serif, system-ui, sans-serif;
 }
-
+/* Login and authentication UI: .ks-login-art */
 .ks-login-art {
   position: relative;
   min-height: 640px;
@@ -2021,17 +2022,17 @@
     url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=85") center / cover;
   color: #fff;
 }
-
+/* Login and authentication UI: .ks-login-art-copy */
 .ks-login-art-copy {
   max-width: 490px;
 }
-
+/* Login and authentication UI: .ks-login-art .ks-eyebrow */
 .ks-login-art .ks-eyebrow {
   color: #d3e1b5;
   font-size: 14px;
   letter-spacing: 1.4px;
 }
-
+/* Login and authentication UI: .ks-login-art h1 */
 .ks-login-art h1 {
   margin: 17px 0;
   font-size: clamp(42px, 5.3vw, 72px);
@@ -2039,14 +2040,14 @@
   letter-spacing: -3px;
   line-height: 1.03;
 }
-
+/* Login and authentication UI: .ks-login-art-copy p */
 .ks-login-art-copy p {
   max-width: 320px;
   color: rgba(255, 255, 255, 0.79);
   font-size: 18px;
   line-height: 1.7;
 }
-
+/* Styles for .ks-art-caption */
 .ks-art-caption {
   position: absolute;
   bottom: 25px;
@@ -2055,22 +2056,22 @@
   font-size: 13px;
   letter-spacing: 0.8px;
 }
-
+/* Login and authentication UI: .ks-login-card */
 .ks-login-card {
   width: min(100%, 400px);
   margin: auto;
   padding: 32px 24px;
 }
-
+/* Login and authentication UI: .ks-login-page .ks-login-language */
 .ks-login-page .ks-login-language {
   margin-bottom: 24px;
 }
-
+/* Login and authentication UI: .ks-login-page .ks-language-select, .ks-login-page .ks-language-select select */
 .ks-login-page .ks-language-select,
 .ks-login-page .ks-language-select select {
   font-size: 13px;
 }
-
+/* Styles for .ks-back-link */
 .ks-back-link {
   display: block;
   margin-bottom: 18px;
@@ -2078,7 +2079,7 @@
   font-size: 13px;
   letter-spacing: 0.08em;
 }
-
+/* Login and authentication UI: .ks-login-brand */
 .ks-login-brand {
   margin-bottom: 28px;
   color: #1f3d2e;
@@ -2086,7 +2087,7 @@
   font-weight: 600;
   letter-spacing: -0.5px;
 }
-
+/* Login and authentication UI: .ks-login-card > .ks-eyebrow */
 .ks-login-card > .ks-eyebrow {
   margin: 0 0 8px;
   color: #52705c;
@@ -2094,7 +2095,7 @@
   font-weight: 500;
   letter-spacing: 0;
 }
-
+/* Login and authentication UI: .ks-login-card h2 */
 .ks-login-card h2 {
   margin: 0;
   color: #1f3d2e;
@@ -2102,30 +2103,30 @@
   font-weight: 700;
   letter-spacing: -0.8px;
 }
-
+/* Login and authentication UI: .ks-login-description */
 .ks-login-description {
   margin: 8px 0 24px;
   color: #5f6b66;
   font-size: 15px;
   line-height: 1.7;
 }
-
+/* Login and authentication UI: .ks-login-form */
 .ks-login-form {
   display: grid;
   gap: 20px;
 }
-
+/* Login and authentication UI: .ks-login-field */
 .ks-login-field {
   display: grid;
   gap: 8px;
 }
-
+/* Login and authentication UI: .ks-login-form label */
 .ks-login-form label {
   color: #536153;
   font-size: 13px;
   font-weight: 600;
 }
-
+/* Login and authentication UI: .ks-login-field > input, .ks-password-input > input */
 .ks-login-field > input,
 .ks-password-input > input {
   width: 100%;
@@ -2142,34 +2143,34 @@
   font-size: 16px;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
-
+/* Login and authentication UI: .ks-login-field > input:focus, .ks-password-input > input:focus */
 .ks-login-field > input:focus,
 .ks-password-input > input:focus {
   border-color: #2f6b45;
   box-shadow: 0 0 0 3px rgba(47, 107, 69, 0.15);
 }
-
+/* Login and authentication UI: .ks-login-field > input:-webkit-autofill, .ks-password-input > input:-webkit-autofill */
 .ks-login-field > input:-webkit-autofill,
 .ks-password-input > input:-webkit-autofill {
   -webkit-text-fill-color: #25342b;
   -webkit-box-shadow: 0 0 0 1000px white inset;
   box-shadow: 0 0 0 1000px white inset;
 }
-
+/* Login and authentication UI: .ks-login-field > input:-webkit-autofill:focus, .ks-password-input > input:-webkit-autofill:focus */
 .ks-login-field > input:-webkit-autofill:focus,
 .ks-password-input > input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px white inset, 0 0 0 3px rgba(47, 107, 69, 0.15);
   box-shadow: 0 0 0 1000px white inset, 0 0 0 3px rgba(47, 107, 69, 0.15);
 }
-
+/* Form controls and input styling: .ks-password-input */
 .ks-password-input {
   position: relative;
 }
-
+/* Form controls and input styling: .ks-password-input > input */
 .ks-password-input > input {
   padding-right: 52px;
 }
-
+/* Styles for .ks-password-toggle */
 .ks-password-toggle {
   position: absolute;
   top: 50%;
@@ -2186,7 +2187,7 @@
   color: #617269;
   cursor: pointer;
 }
-
+/* Styles for .ks-password-toggle svg */
 .ks-password-toggle svg {
   width: 20px;
   height: 20px;
@@ -2196,7 +2197,7 @@
   stroke-linejoin: round;
   stroke-width: 1.7;
 }
-
+/* Login and authentication UI: .ks-login-options */
 .ks-login-options {
   margin-top: -2px;
   display: flex;
@@ -2204,7 +2205,7 @@
   justify-content: space-between;
   gap: 12px;
 }
-
+/* Login and authentication UI: .ks-login-form .ks-remember-option */
 .ks-login-form .ks-remember-option {
   display: inline-flex;
   align-items: center;
@@ -2214,7 +2215,7 @@
   font-weight: 500;
   cursor: pointer;
 }
-
+/* Login and authentication UI: .ks-login-form .ks-remember-option input */
 .ks-login-form .ks-remember-option input {
   width: 16px;
   height: 16px;
@@ -2222,7 +2223,7 @@
   margin: 0;
   accent-color: #2f6b45;
 }
-
+/* Styles for .ks-forgot-password */
 .ks-forgot-password {
   padding: 0;
   border: 0;
@@ -2233,7 +2234,7 @@
   font-weight: 600;
   cursor: pointer;
 }
-
+/* Login and authentication UI: .ks-login-form .ks-primary-button */
 .ks-login-form .ks-primary-button {
   width: 100%;
   min-height: 48px;
@@ -2245,21 +2246,21 @@
   font-size: 16px;
   transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
-
+/* Login and authentication UI: .ks-login-form .ks-primary-button:hover:not(:disabled) */
 .ks-login-form .ks-primary-button:hover:not(:disabled) {
   transform: translateY(-1px);
   background: #255538;
 }
-
+/* Login and authentication UI: .ks-login-form .ks-primary-button:disabled */
 .ks-login-form .ks-primary-button:disabled {
   cursor: wait;
   opacity: 0.82;
 }
-
+/* Login and authentication UI: .ks-login-form input:focus-visible */
 .ks-login-form input:focus-visible {
   outline: 0;
 }
-
+/* Login and authentication UI: .ks-login-spinner */
 .ks-login-spinner {
   width: 16px;
   height: 16px;
@@ -2268,31 +2269,32 @@
   border-radius: 50%;
   animation: ks-login-spin 700ms linear infinite;
 }
-
+/* Animation definition: @keyframes ks-login-spin */
 @keyframes ks-login-spin {
+/* Styles for to */
   to {
     transform: rotate(360deg);
   }
 }
-
+/* Login and authentication UI: .ks-login-notice, .ks-form-error */
 .ks-login-notice,
 .ks-form-error {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
 }
-
+/* Login and authentication UI: .ks-login-notice */
 .ks-login-notice {
   color: #5f6b66;
 }
-
+/* Login and authentication UI: .ks-auth-switch */
 .ks-auth-switch {
   margin: 20px 0 0;
   color: #5f6b66;
   font-size: 14px;
   text-align: center;
 }
-
+/* Login and authentication UI: .ks-auth-switch button */
 .ks-auth-switch button {
   margin-left: 5px;
   padding: 0;
@@ -2303,11 +2305,11 @@
   font-weight: 700;
   cursor: pointer;
 }
-
+/* Form controls and input styling: .ks-form-error */
 .ks-form-error {
   color: #a54035;
 }
-
+/* Styles for .ks-demo-note */
 .ks-demo-note {
   margin: 18px 0 0;
   display: flex;
@@ -2317,7 +2319,7 @@
   font-size: 13px;
   line-height: 1.5;
 }
-
+/* Styles for .ks-demo-note svg */
 .ks-demo-note svg {
   width: 17px;
   height: 17px;
@@ -2328,96 +2330,98 @@
   stroke-linejoin: round;
   stroke-width: 1.6;
 }
-
+/* Login and authentication UI: .ks-app :where(a, button, input, select, textarea):focus-visible, .ks-login-page :where(a, button, input):focus-visible */
 .ks-app :where(a, button, input, select, textarea):focus-visible,
 .ks-login-page :where(a, button, input):focus-visible {
   outline: 3px solid rgba(120, 147, 76, 0.52);
   outline-offset: 3px;
 }
-
+/* Sidebar layout and navigation: .ks-app:dir(rtl) .ks-sidebar */
 .ks-app:dir(rtl) .ks-sidebar {
   inset: 0 0 0 auto;
   border-right: 0;
   border-left: 1px solid #294b3d;
 }
-
+/* Styles for .ks-app:dir(rtl) .ks-main */
 .ks-app:dir(rtl) .ks-main {
   margin-right: 244px;
   margin-left: 0;
 }
-
+/* Branding and navigation styling: .ks-app:dir(rtl) .ks-nav a:hover */
 .ks-app:dir(rtl) .ks-nav a:hover {
   transform: translateX(-2px);
 }
-
+/* Sidebar layout and navigation: .ks-app:dir(rtl) .ks-user-copy, .ks-app:dir(rtl) .ks-sidebar-bottom */
 .ks-app:dir(rtl) .ks-user-copy,
 .ks-app:dir(rtl) .ks-sidebar-bottom {
   direction: rtl;
 }
-
+/* Styles for .ks-app:dir(rtl) .ks-logout */
 .ks-app:dir(rtl) .ks-logout {
   margin-right: auto;
   margin-left: 0;
 }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-timeline::before */
 .ks-app:dir(rtl) .ks-crop-timeline::before {
   right: 76px;
   left: auto;
 }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-timeline-entry */
 .ks-app:dir(rtl) .ks-crop-timeline-entry {
   grid-template-columns: minmax(0, 1fr) 92px;
 }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-date-tile */
 .ks-app:dir(rtl) .ks-crop-date-tile {
   grid-column: 2;
 }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-timeline-marker */
 .ks-app:dir(rtl) .ks-crop-timeline-marker {
   right: 71px;
   left: auto;
 }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-entry-card */
 .ks-app:dir(rtl) .ks-crop-entry-card {
   grid-column: 1;
 }
-
+/* Responsive layout rules: @media (max-width: 960px) */
 @media (max-width: 960px) {
+/* Sidebar layout and navigation: .ks-sidebar */
   .ks-sidebar {
     width: 205px;
   }
-
+/* Styles for .ks-main */
   .ks-main {
     width: calc(100% - 205px);
     margin-left: 205px;
   }
-
+/* Dashboard layout and information panel styling: .ks-stat-grid */
   .ks-stat-grid {
     grid-template-columns: 1fr 1fr;
   }
-
+/* Weather card and weather information styling: .ks-weather-card */
   .ks-weather-card {
     grid-column: 1 / -1;
   }
-
+/* Produce traceability and batch UI styling: .ks-trace-layout */
   .ks-trace-layout {
     grid-template-columns: minmax(0, 1fr) 220px;
   }
-
+/* Produce traceability and batch UI styling: .ks-batch-grid */
   .ks-batch-grid {
     grid-template-columns: 1fr;
   }
-
+/* Form controls and input styling: .ks-input-row */
   .ks-input-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
+/* Styles for .ks-advisory-grid */
   .ks-advisory-grid {
     grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.9fr);
   }
 }
-
+/* Responsive layout rules: @media (max-width: 700px) */
 @media (max-width: 700px) {
+/* Sidebar layout and navigation: .ks-sidebar */
   .ks-sidebar {
     position: sticky;
     top: 0;
@@ -2428,281 +2432,283 @@
     flex: 0 0 60px;
     align-items: center;
   }
-
+/* Branding and navigation styling: .ks-brand */
   .ks-brand {
     gap: 0;
     font-size: 0;
   }
-
+/* Branding and navigation styling: .ks-brand-icon */
   .ks-brand-icon {
     flex: 0 0 35px;
   }
-
+/* Sidebar layout and navigation: .ks-sidebar-label, .ks-nav a:not(.active) */
   .ks-sidebar-label,
   .ks-nav a:not(.active) {
     font-size: 0;
   }
-
+/* Sidebar layout and navigation: .ks-sidebar-label */
   .ks-sidebar-label {
     height: 1px;
     margin: 26px 0 10px;
     overflow: hidden;
   }
-
+/* Branding and navigation styling: .ks-nav */
   .ks-nav {
     width: 100%;
   }
-
+/* Branding and navigation styling: .ks-nav a */
   .ks-nav a {
     min-height: 42px;
     padding: 0;
     justify-content: center;
     font-size: 0;
   }
-
+/* Branding and navigation styling: .ks-nav a > span */
   .ks-nav a > span {
     font-size: 18px;
   }
-
+/* Sidebar layout and navigation: .ks-sidebar-bottom */
   .ks-sidebar-bottom {
     width: 100%;
     padding: 12px 0 0;
     justify-content: center;
   }
-
+/* Styles for .ks-user-copy, .ks-logout */
   .ks-user-copy,
   .ks-logout {
     display: none;
   }
-
+/* Styles for .ks-main */
   .ks-main {
     width: calc(100% - 60px);
     margin-left: 0;
   }
-
+/* Sidebar layout and navigation: .ks-app:dir(rtl) .ks-sidebar */
   .ks-app:dir(rtl) .ks-sidebar {
     inset: auto;
   }
-
+/* Styles for .ks-app:dir(rtl) .ks-main */
   .ks-app:dir(rtl) .ks-main {
     margin-right: 0;
   }
-
+/* Styles for .ks-topbar */
   .ks-topbar {
     min-height: 65px;
     padding: 10px 18px;
   }
-
+/* Styles for .ks-content */
   .ks-content {
     padding: 27px 18px 42px;
   }
-
+/* Dashboard layout and information panel styling: .ks-dashboard-grid */
   .ks-dashboard-grid {
     grid-template-columns: 1fr;
   }
-
+/* Produce traceability and batch UI styling: .ks-trace-layout */
   .ks-trace-layout {
     grid-template-columns: 1fr;
   }
-
+/* Form controls and input styling: .ks-batch-form */
   .ks-batch-form {
     padding: 18px;
   }
-
+/* Form controls and input styling: .ks-input-row */
   .ks-input-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
+/* Produce traceability and batch UI styling: .ks-batch-list-card */
   .ks-batch-list-card {
     padding: 17px;
   }
-
+/* Produce traceability and batch UI styling: .ks-public-trace */
   .ks-public-trace {
     padding: 16px 12px;
   }
-
+/* Styles for .ks-public-card */
   .ks-public-card {
     padding: 19px;
   }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-timeline::before */
   .ks-app:dir(rtl) .ks-crop-timeline::before {
     right: 56px;
   }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-timeline-entry */
   .ks-app:dir(rtl) .ks-crop-timeline-entry {
     grid-template-columns: minmax(0, 1fr) 64px;
   }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-date-tile */
   .ks-app:dir(rtl) .ks-crop-date-tile {
     grid-column: 2;
   }
-
+/* Crop-related UI styling: .ks-app:dir(rtl) .ks-crop-timeline-marker */
   .ks-app:dir(rtl) .ks-crop-timeline-marker {
     right: 51px;
   }
-
+/* Styles for .ks-advisory-grid */
   .ks-advisory-grid {
     grid-template-columns: 1fr;
   }
-
+/* Produce traceability and batch UI styling: .ks-qr-card */
   .ks-qr-card {
     order: -1;
   }
-
+/* Login and authentication UI: .ks-login-page */
   .ks-login-page {
     grid-template-columns: 1fr;
   }
-
+/* Login and authentication UI: .ks-login-art */
   .ks-login-art {
     min-height: 310px;
     padding: 35px;
   }
-
+/* Login and authentication UI: .ks-login-art h1 */
   .ks-login-art h1 {
     max-width: 440px;
     font-size: 43px;
   }
-
+/* Styles for .ks-art-caption */
   .ks-art-caption {
     left: 35px;
   }
-
+/* Login and authentication UI: .ks-login-card */
   .ks-login-card {
     padding: 32px 28px 48px;
   }
-
+/* Styles for .ks-back-link */
   .ks-back-link {
     margin-bottom: 35px;
   }
-
+/* Login and authentication UI: .ks-login-brand */
   .ks-login-brand {
     margin-bottom: 30px;
   }
 }
-
+/* Responsive layout rules: @media (max-width: 520px) */
 @media (max-width: 520px) {
+/* Styles for .ks-page-heading */
   .ks-page-heading {
     align-items: flex-start;
     flex-direction: column;
   }
-
+/* Button appearance and interaction states: .ks-heading-button */
   .ks-heading-button {
     min-height: 37px;
   }
-
+/* Dashboard layout and information panel styling: .ks-stat-grid */
   .ks-stat-grid {
     grid-template-columns: 1fr;
   }
-
+/* Weather card and weather information styling: .ks-weather-card */
   .ks-weather-card {
     grid-column: auto;
   }
-
+/* Dashboard layout and information panel styling: .ks-stat-card */
   .ks-stat-card {
     min-height: 155px;
   }
-
+/* Styles for .ks-advisory-card */
   .ks-advisory-card {
     align-items: flex-start;
     flex-wrap: wrap;
   }
-
+/* Styles for .ks-advisory-copy */
   .ks-advisory-copy {
     flex: 1 1 calc(100% - 56px);
   }
-
+/* Styles for .ks-feedback-actions */
   .ks-feedback-actions {
     width: 100%;
     padding-left: 53px;
   }
-
+/* Button appearance and interaction states: .ks-feedback-actions button */
   .ks-feedback-actions button {
     flex: 1;
   }
-
+/* Styles for .ks-recommendation-meta */
   .ks-recommendation-meta {
     grid-template-columns: 1fr;
   }
-
+/* Styles for .ks-advisory-section-heading */
   .ks-advisory-section-heading {
     align-items: flex-start;
     flex-direction: column;
   }
-
+/* Styles for .ks-advisory-section-heading > span */
   .ks-advisory-section-heading > span {
     text-align: left;
   }
-
+/* Produce traceability and batch UI styling: .ks-trace-banner */
   .ks-trace-banner {
     align-items: flex-start;
     flex-direction: column;
   }
-
+/* Timeline and history styling: .ks-timeline-entry */
   .ks-timeline-entry {
     grid-template-columns: 1fr;
     gap: 7px;
   }
-
+/* Timeline and history styling: .ks-timeline-date */
   .ks-timeline-date {
     display: flex;
     align-items: center;
     gap: 9px;
   }
-
+/* Crop-related UI styling: .ks-crop-timeline */
   .ks-crop-timeline {
     gap: 13px;
   }
-
+/* Crop-related UI styling: .ks-crop-timeline::before */
   .ks-crop-timeline::before {
     left: 56px;
   }
-
+/* Crop-related UI styling: .ks-crop-timeline-entry */
   .ks-crop-timeline-entry {
     grid-template-columns: 64px minmax(0, 1fr);
     gap: 10px;
   }
-
+/* Crop-related UI styling: .ks-crop-date-tile */
   .ks-crop-date-tile {
     width: 48px;
     min-height: 56px;
     margin-top: 10px;
   }
-
+/* Crop-related UI styling: .ks-crop-timeline-marker */
   .ks-crop-timeline-marker {
     top: 32px;
     left: 51px;
   }
-
+/* Crop-related UI styling: .ks-crop-entry-card */
   .ks-crop-entry-card {
     padding: 18px;
   }
-
+/* Crop-related UI styling: .ks-crop-entry-card h2 */
   .ks-crop-entry-card h2 {
     font-size: 14px;
   }
-
+/* Form controls and input styling: .ks-form-grid */
   .ks-form-grid {
     grid-template-columns: 1fr;
   }
-
+/* Styles for .ks-log-summary */
   .ks-log-summary {
     flex-wrap: wrap;
   }
-
+/* Dashboard layout and information panel styling: .ks-log-summary .ks-status-pill */
   .ks-log-summary .ks-status-pill {
     margin-left: 53px;
   }
-
+/* Timeline and history styling: .ks-history-item time */
   .ks-history-item time {
     font-size: 8px;
   }
-
+/* Produce traceability and batch UI styling: .ks-batch-facts */
   .ks-batch-facts {
     grid-template-columns: 1fr;
   }
 }
-
+/* Responsive layout rules: @media (prefers-reduced-motion: reduce) */
 @media (prefers-reduced-motion: reduce) {
+/* Login and authentication UI: .ks-app *, .ks-login-page * */
   .ks-app *,
   .ks-login-page * {
     scroll-behavior: auto !important;
@@ -2710,22 +2716,23 @@
     transition-duration: 0.01ms !important;
   }
 }
-
+/* Responsive layout rules: @media (max-width: 899px) */
 @media (max-width: 899px) {
+/* Login and authentication UI: .ks-login-page */
   .ks-login-page {
     grid-template-columns: minmax(0, 1fr);
   }
-
+/* Login and authentication UI: .ks-login-art */
   .ks-login-art {
     display: none;
   }
-
+/* Login and authentication UI: .ks-login-card */
   .ks-login-card {
     width: min(100%, 400px);
     padding: 24px;
   }
 }
-
+/* Styles for .ks-plant-due-banner */
 .ks-plant-due-banner {
   margin: 0 0 18px;
   padding: 15px 18px;
@@ -2737,7 +2744,7 @@
   background: #f1f5ec;
   color: #365b3e;
 }
-
+/* Styles for .ks-plant-due-icon */
 .ks-plant-due-icon {
   width: 38px;
   height: 38px;
@@ -2749,29 +2756,29 @@
   color: #52784b;
   font-size: 22px;
 }
-
+/* Styles for .ks-plant-due-banner > span:nth-child(2) */
 .ks-plant-due-banner > span:nth-child(2) {
   min-width: 0;
   display: grid;
   gap: 3px;
 }
-
+/* Styles for .ks-plant-due-banner strong */
 .ks-plant-due-banner strong {
   font-size: 13px;
 }
-
+/* Styles for .ks-plant-due-banner small */
 .ks-plant-due-banner small {
   color: #748173;
   font-size: 11px;
 }
-
+/* Styles for .ks-plant-due-action */
 .ks-plant-due-action {
   margin-left: auto;
   flex: 0 0 auto;
   font-size: 12px;
   font-weight: 700;
 }
-
+/* Styles for .ks-plant-due-card */
 .ks-plant-due-card {
   margin-bottom: 18px;
   padding: 22px 24px;
@@ -2780,50 +2787,50 @@
   justify-content: space-between;
   gap: 20px;
 }
-
+/* Styles for .ks-plant-due-copy */
 .ks-plant-due-copy {
   display: flex;
   align-items: center;
   gap: 14px;
 }
-
+/* Dashboard layout and information panel styling: .ks-plant-due-copy .ks-stat-icon */
 .ks-plant-due-copy .ks-stat-icon {
   flex: 0 0 42px;
   width: 42px;
   height: 42px;
 }
-
+/* Styles for .ks-plant-due-copy h2 */
 .ks-plant-due-copy h2 {
   margin-top: 5px;
   color: #304233;
   font-size: 20px;
   font-weight: 600;
 }
-
+/* Styles for .ks-plant-due-copy p:last-child */
 .ks-plant-due-copy p:last-child {
   margin-top: 5px;
   color: #7c867b;
   font-size: 12px;
 }
-
+/* Button appearance and interaction states: .ks-plant-due-card > .ks-primary-button */
 .ks-plant-due-card > .ks-primary-button {
   flex: 0 0 auto;
   min-height: 42px;
   background: #2f6b45;
   font-size: 12px;
 }
-
+/* Timeline and history styling: .ks-plant-result, .ks-plant-timeline */
 .ks-plant-result,
 .ks-plant-timeline {
   margin-bottom: 18px;
   padding: 23px;
 }
-
+/* Timeline and history styling: .ks-plant-result .ks-panel-heading, .ks-plant-timeline .ks-panel-heading */
 .ks-plant-result .ks-panel-heading,
 .ks-plant-timeline .ks-panel-heading {
   margin-bottom: 17px;
 }
-
+/* Timeline and history styling: .ks-plant-result .ks-panel-heading h2, .ks-plant-timeline .ks-panel-heading h2 */
 .ks-plant-result .ks-panel-heading h2,
 .ks-plant-timeline .ks-panel-heading h2 {
   margin-top: 5px;
@@ -2831,23 +2838,23 @@
   font-size: 17px;
   font-weight: 600;
 }
-
+/* Styles for .ks-plant-healthy */
 .ks-plant-healthy {
   background: #e4efdc;
   color: #4e7749;
 }
-
+/* Styles for .ks-plant-caution */
 .ks-plant-caution {
   background: #fbf0d8;
   color: #946b22;
 }
-
+/* Styles for .ks-plant-result-body */
 .ks-plant-result-body {
   display: grid;
   grid-template-columns: minmax(170px, 0.75fr) minmax(0, 1.25fr);
   gap: 22px;
 }
-
+/* Styles for .ks-plant-result-body > img */
 .ks-plant-result-body > img {
   width: 100%;
   height: 100%;
@@ -2857,39 +2864,39 @@
   object-fit: cover;
   background: #eef1e9;
 }
-
+/* Styles for .ks-plant-result-copy h3 */
 .ks-plant-result-copy h3 {
   color: #304233;
   font-size: 17px;
   font-weight: 600;
 }
-
+/* Styles for .ks-plant-confidence */
 .ks-plant-confidence {
   margin-top: 6px;
   display: inline-block;
   color: #738071;
   font-size: 12px;
 }
-
+/* Styles for .ks-plant-result-copy > p */
 .ks-plant-result-copy > p {
   margin-top: 12px;
   color: #657167;
   font-size: 13px;
   line-height: 1.6;
 }
-
+/* Styles for .ks-plant-treatment */
 .ks-plant-treatment {
   margin-top: 17px;
   padding-top: 15px;
   border-top: 1px solid #edf0e9;
 }
-
+/* Styles for .ks-plant-treatment h4 */
 .ks-plant-treatment h4 {
   color: #405a43;
   font-size: 13px;
   font-weight: 700;
 }
-
+/* Styles for .ks-plant-treatment ul */
 .ks-plant-treatment ul {
   margin: 9px 0 13px;
   padding-left: 19px;
@@ -2897,7 +2904,7 @@
   font-size: 12px;
   line-height: 1.7;
 }
-
+/* Styles for .ks-plant-safety-notice, .ks-plant-expert-note */
 .ks-plant-safety-notice,
 .ks-plant-expert-note {
   padding: 10px 12px;
@@ -2908,7 +2915,7 @@
   font-size: 11px;
   line-height: 1.6;
 }
-
+/* Styles for .ks-plant-expert-note */
 .ks-plant-expert-note {
   margin-top: 15px;
   border-color: #f0dfbd;
@@ -2916,7 +2923,7 @@
   color: #8a672a;
   font-weight: 600;
 }
-
+/* Styles for .ks-plant-treatment-placeholder */
 .ks-plant-treatment-placeholder {
   margin-top: 16px;
   padding: 10px 12px;
@@ -2927,7 +2934,7 @@
   font-size: 12px;
   line-height: 1.6;
 }
-
+/* Styles for .ks-plant-error */
 .ks-plant-error {
   margin: 10px 0;
   padding: 11px 13px;
@@ -2936,12 +2943,12 @@
   color: #a34f42;
   font-size: 12px;
 }
-
+/* Timeline and history styling: .ks-plant-timeline-list */
 .ks-plant-timeline-list {
   position: relative;
   display: grid;
 }
-
+/* Timeline and history styling: .ks-plant-timeline-list::before */
 .ks-plant-timeline-list::before {
   position: absolute;
   top: 23px;
@@ -2951,7 +2958,7 @@
   content: "";
   background: #dfe7d8;
 }
-
+/* Timeline and history styling: .ks-plant-timeline-entry */
 .ks-plant-timeline-entry {
   position: relative;
   z-index: 1;
@@ -2962,7 +2969,7 @@
   gap: 17px;
   border-top: 1px solid #f0f1ec;
 }
-
+/* Styles for .ks-plant-photo-thumb */
 .ks-plant-photo-thumb {
   width: 76px;
   height: 70px;
@@ -2974,21 +2981,21 @@
   box-shadow: 0 0 0 1px #dce5d7;
   cursor: pointer;
 }
-
+/* Styles for .ks-plant-photo-thumb img */
 .ks-plant-photo-thumb img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
 }
-
+/* Timeline and history styling: .ks-plant-timeline-copy */
 .ks-plant-timeline-copy {
   min-width: 0;
   display: grid;
   justify-items: start;
   gap: 6px;
 }
-
+/* Timeline and history styling: .ks-plant-timeline-top */
 .ks-plant-timeline-top {
   width: 100%;
   display: flex;
@@ -2996,18 +3003,18 @@
   justify-content: space-between;
   gap: 10px;
 }
-
+/* Timeline and history styling: .ks-plant-timeline-top > strong */
 .ks-plant-timeline-top > strong {
   color: #4b6848;
   font-size: 12px;
 }
-
+/* Timeline and history styling: .ks-plant-timeline-copy h3 */
 .ks-plant-timeline-copy h3 {
   color: #3f5042;
   font-size: 13px;
   font-weight: 600;
 }
-
+/* Styles for .ks-plant-comparison */
 .ks-plant-comparison {
   padding: 4px 8px;
   border-radius: 20px;
@@ -3016,17 +3023,17 @@
   font-size: 10px;
   font-weight: 600;
 }
-
+/* Styles for .ks-comparison-improved */
 .ks-comparison-improved {
   background: #e4efdc;
   color: #4e7749;
 }
-
+/* Styles for .ks-comparison-worse */
 .ks-comparison-worse {
   background: #fbf0d8;
   color: #946b22;
 }
-
+/* Styles for .ks-plant-modal-backdrop */
 .ks-plant-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -3037,7 +3044,7 @@
   overflow-y: auto;
   background: rgba(20, 37, 27, 0.58);
 }
-
+/* Styles for .ks-plant-upload-modal */
 .ks-plant-upload-modal {
   width: min(100%, 520px);
   max-height: calc(100vh - 48px);
@@ -3045,25 +3052,25 @@
   overflow-y: auto;
   box-shadow: 0 22px 70px rgba(18, 38, 25, 0.24);
 }
-
+/* Dashboard layout and information panel styling: .ks-plant-upload-modal .ks-panel-heading */
 .ks-plant-upload-modal .ks-panel-heading {
   margin-bottom: 18px;
 }
-
+/* Dashboard layout and information panel styling: .ks-plant-upload-modal .ks-panel-heading h2 */
 .ks-plant-upload-modal .ks-panel-heading h2 {
   margin-top: 5px;
   color: #304233;
   font-size: 18px;
   font-weight: 600;
 }
-
+/* Styles for .ks-plant-upload-options */
 .ks-plant-upload-options {
   margin-bottom: 14px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
-
+/* Styles for .ks-plant-upload-option */
 .ks-plant-upload-option {
   position: relative;
   min-height: 48px;
@@ -3081,23 +3088,23 @@
   font-weight: 600;
   cursor: pointer;
 }
-
+/* Styles for .ks-plant-upload-option:hover */
 .ks-plant-upload-option:hover {
   background: #eef4e9;
 }
-
+/* Styles for .ks-plant-upload-option:focus-within */
 .ks-plant-upload-option:focus-within {
   outline: 3px solid rgba(120, 147, 76, 0.52);
   outline-offset: 2px;
 }
-
+/* Form controls and input styling: .ks-plant-upload-option input */
 .ks-plant-upload-option input {
   position: absolute;
   width: 1px;
   height: 1px;
   opacity: 0;
 }
-
+/* Styles for .ks-plant-preview */
 .ks-plant-preview {
   width: 100%;
   max-height: 340px;
@@ -3106,7 +3113,7 @@
   background: #eef1e9;
   object-fit: contain;
 }
-
+/* Styles for .ks-plant-preview-placeholder */
 .ks-plant-preview-placeholder {
   min-height: 190px;
   padding: 24px;
@@ -3120,16 +3127,16 @@
   color: #788878;
   text-align: center;
 }
-
+/* Styles for .ks-plant-preview-placeholder > span */
 .ks-plant-preview-placeholder > span {
   color: #7e9a6b;
   font-size: 31px;
 }
-
+/* Styles for .ks-plant-preview-placeholder p */
 .ks-plant-preview-placeholder p {
   font-size: 12px;
 }
-
+/* Button appearance and interaction states: .ks-plant-analyze-button */
 .ks-plant-analyze-button {
   width: 100%;
   margin-top: 16px;
@@ -3137,71 +3144,73 @@
   background: #2f6b45;
   font-size: 12px;
 }
-
+/* Button appearance and interaction states: .ks-plant-analyze-button:disabled */
 .ks-plant-analyze-button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
-
+/* Responsive layout rules: @media (max-width: 700px) */
 @media (max-width: 700px) {
+/* Styles for .ks-plant-result-body */
   .ks-plant-result-body {
     grid-template-columns: minmax(0, 1fr);
     gap: 15px;
   }
-
+/* Styles for .ks-plant-result-body > img */
   .ks-plant-result-body > img {
     max-height: 240px;
     min-height: 170px;
   }
 }
-
+/* Responsive layout rules: @media (max-width: 520px) */
 @media (max-width: 520px) {
+/* Styles for .ks-plant-due-banner */
   .ks-plant-due-banner {
     flex-wrap: wrap;
   }
-
+/* Styles for .ks-plant-due-action */
   .ks-plant-due-action {
     margin-left: 51px;
   }
-
+/* Styles for .ks-plant-due-card */
   .ks-plant-due-card {
     align-items: stretch;
     flex-direction: column;
   }
-
+/* Button appearance and interaction states: .ks-plant-due-card > .ks-primary-button */
   .ks-plant-due-card > .ks-primary-button {
     width: 100%;
   }
-
+/* Timeline and history styling: .ks-plant-result, .ks-plant-timeline, .ks-plant-upload-modal */
   .ks-plant-result,
   .ks-plant-timeline,
   .ks-plant-upload-modal {
     padding: 17px;
   }
-
+/* Timeline and history styling: .ks-plant-timeline-entry */
   .ks-plant-timeline-entry {
     grid-template-columns: 68px minmax(0, 1fr);
     gap: 10px;
   }
-
+/* Timeline and history styling: .ks-plant-timeline-list::before */
   .ks-plant-timeline-list::before {
     left: 33px;
   }
-
+/* Styles for .ks-plant-photo-thumb */
   .ks-plant-photo-thumb {
     width: 60px;
     height: 60px;
   }
-
+/* Timeline and history styling: .ks-plant-timeline-top */
   .ks-plant-timeline-top {
     align-items: flex-start;
     flex-direction: column;
   }
-
+/* Styles for .ks-plant-modal-backdrop */
   .ks-plant-modal-backdrop {
     padding: 14px;
   }
-
+/* Styles for .ks-plant-upload-modal */
   .ks-plant-upload-modal {
     max-height: calc(100vh - 28px);
   }
