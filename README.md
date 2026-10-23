@@ -210,23 +210,17 @@ The initial development approach is to test a small dataset with basic classes s
 
 **Important:** The disease detection model is a planned feature, not a confirmed working diagnostic system. Predictions from a future model should be treated as preliminary guidance and verified by an agricultural expert.
 
-## 🖼️ Screenshots
-
-Add screenshots of your actual application to the repository and update the image paths below.
+📸 Screenshots
 
 <div align="center">
 
-### 🏠 Bhoomitra Homepage
+🏠 Home Page
 
-![Bhoomitra Homepage](<img src="assets/Home.png" width="800" alt="Bhoomitra Homepage"/>)
+<img src="frontend/src/assets/fonts/Home.png" width="800" alt="Bhoomitra Home Page"/>
 
-### 🌿 Agriculture Dashboard
+🔐 Login Page
 
-![Bhoomitra Dashboard](<img src="assets/LoginPage.png" width="800" alt="Bhoomitra Dashboard"/>)
-
-### 🍎 Pomegranate Disease Detection
-
-![Pomegranate Disease Detection](docs/screenshots/pomegranate-detection.png)
+<img src="frontend/src/assets/fonts/LoginPage.png" width="800" alt="Bhoomitra Login Page"/>
 
 </div>
 
