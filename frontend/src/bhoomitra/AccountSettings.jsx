@@ -10,7 +10,7 @@ function readPreference(key, fallback) {
   return savedValue === null ? fallback : savedValue === "true";
 }
 
-function AccountSettings({ user, onUserUpdated, onSignOut, language, setLanguage, t }) {
+function AccountSettings({ user, onUserUpdated, onSignOut, onShowTutorial, language, setLanguage, t }) {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileName, setProfileName] = useState(user.name);
   const [profileEmail, setProfileEmail] = useState(user.email);
@@ -306,6 +306,14 @@ function AccountSettings({ user, onUserUpdated, onSignOut, language, setLanguage
             <input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => updatePreference("reducedMotion", event.target.checked)} />
           </label>
         </div>
+      </section>
+
+      <section className="ks-panel ks-settings-card ks-settings-tutorial" aria-labelledby="settings-tutorial-title">
+        <div className="ks-settings-section-heading">
+          <span className="ks-settings-section-icon" aria-hidden="true">?</span>
+          <div><h2 id="settings-tutorial-title">{t("tutorialHelpTitle")}</h2><p>{t("tutorialHelpDescription")}</p></div>
+        </div>
+        <button type="button" className="ks-secondary-button" onClick={onShowTutorial}>{t("showTutorialAgain")}</button>
       </section>
 
       <section className="ks-panel ks-settings-card ks-settings-security" aria-labelledby="settings-security-title">

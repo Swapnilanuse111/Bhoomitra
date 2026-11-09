@@ -1,17 +1,24 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { Link, Navigate, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import "./bhoomitra.css";
 import { languages, translate } from "./localization";
 import AccountSettings from "./AccountSettings.jsx";
-import { analyzePhoto as analyzePlantPhoto } from "../services/plantHealthApi.js";
+import {
+  analyzePhoto as analyzePlantPhoto,
+  getPhotoSchedule,
+  updatePhotoSchedule
+} from "../services/plantHealthApi.js";
 import {
   createCropLogEntry,
   getCropLog,
   getCurrentUser,
   loginFarmer,
   logoutFarmer,
-  registerFarmer
+  registerFarmer,
+  restoreCropLogEntry,
+  updateCropLogEntry,
+  voidCropLogEntry
 } from "../services/farmerApi.js";
 
 const LanguageContext = createContext({ language: "en", setLanguage: () => {}, t: (key) => key });
@@ -73,7 +80,9 @@ async function fetchWeatherAt(latitude, longitude) {
   const params = new URLSearchParams({
     latitude: String(latitude),
     longitude: String(longitude),
-    current: "temperature_2m,relative_humidity_2m,precipitation_probability,weather_code"
+    current: "temperature_2m,relative_humidity_2m,precipitation_probability,weather_code",
+    hourly: "relative_humidity_2m,precipitation_probability,weather_code",
+    forecast_hours: "48"
   });
   const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
   if (!response.ok) throw new Error(`Weather service returned ${response.status}.`);
@@ -87,13 +96,34 @@ async function fetchWeatherAt(latitude, longitude) {
   ) {
     throw new Error("Weather service returned incomplete current conditions.");
   }
+  const hourly = result.hourly || {};
+  const weatherCodes = Array.isArray(hourly.weather_code)
+    ? hourly.weather_code.filter(Number.isFinite)
+    : [];
+  const forecastHumidity = Array.isArray(hourly.relative_humidity_2m)
+    ? hourly.relative_humidity_2m.filter(Number.isFinite)
+    : [];
+  const forecastRainChance = Array.isArray(hourly.precipitation_probability)
+    ? hourly.precipitation_probability.filter(Number.isFinite)
+    : [];
   return {
     temperature: current.temperature_2m,
     humidity: current.relative_humidity_2m,
     rainChance: Number.isFinite(current.precipitation_probability)
       ? current.precipitation_probability
       : null,
-    weatherCode: current.weather_code
+    weatherCode: current.weather_code,
+    forecast: {
+      weatherCodes: weatherCodes.length ? weatherCodes : [current.weather_code],
+      humidity: forecastHumidity.length
+        ? Math.max(...forecastHumidity)
+        : current.relative_humidity_2m,
+      rainChance: forecastRainChance.length
+        ? Math.max(...forecastRainChance)
+        : Number.isFinite(current.precipitation_probability)
+          ? current.precipitation_probability
+          : null
+    }
   };
 }
 
@@ -207,6 +237,83 @@ function getDeviceLanguage() {
   return "en";
 }
 
+const cropLogQueueKey = "bhoomitra-pending-crop-log-mutations";
+const PHOTO_SCHEDULE_DAYS = 24 * 60 * 60 * 1000;
+
+function photoScheduleCacheKey(ownerEmail, crop) {
+  return `bhoomitra-photo-schedule:${encodeURIComponent(ownerEmail.toLowerCase())}:${crop}`;
+}
+
+function photoSchedulePendingKey(ownerEmail, crop) {
+  return `bhoomitra-photo-schedule-pending:${encodeURIComponent(ownerEmail.toLowerCase())}:${crop}`;
+}
+
+function createOfflinePhotoSchedule(schedule, crop, mode, requestedInterval) {
+  const intervalDays = mode === "manual"
+    ? requestedInterval
+    : schedule?.mode === "auto"
+      ? schedule.interval_days
+      : 5;
+  const previousInterval = schedule?.interval_days || 5;
+  const previousDue = schedule?.next_due_at ? new Date(schedule.next_due_at) : null;
+  const lastPhoto = schedule?.last_photo_at ? new Date(schedule.last_photo_at) : null;
+  const nextDue = lastPhoto
+    ? new Date(lastPhoto.getTime() + intervalDays * PHOTO_SCHEDULE_DAYS)
+    : previousDue
+      ? new Date(previousDue.getTime() + (intervalDays - previousInterval) * PHOTO_SCHEDULE_DAYS)
+      : new Date(Date.now() + intervalDays * PHOTO_SCHEDULE_DAYS);
+  const dueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const daysLeft = Math.round((dueDate.getTime() - todayDate.getTime()) / PHOTO_SCHEDULE_DAYS);
+
+  return {
+    ...schedule,
+    crop,
+    mode,
+    interval_days: intervalDays,
+    next_due_at: nextDue.toISOString(),
+    days_left: daysLeft,
+    status: daysLeft < 0 ? "overdue" : daysLeft === 0 ? "due_today" : "ok",
+    reason: mode === "manual" ? "manual" : schedule?.reason || "normal"
+  };
+}
+
+function showDuePhotoNotification(schedule, t) {
+  if (!schedule || !["due_today", "overdue"].includes(schedule.status)) return;
+  if (!("Notification" in window) || window.Notification.permission !== "granted") return;
+  const dueDate = new Date(schedule.next_due_at).toISOString().slice(0, 10);
+  const notificationKey = `bhoomitra-photo-notification:${schedule.crop}:${dueDate}`;
+  let alreadyNotified = false;
+
+  try {
+    alreadyNotified = localStorage.getItem(notificationKey) === "true";
+  } catch (error) {
+    console.error("Could not check the photo notification history.", error);
+  }
+  if (alreadyNotified) return;
+
+  try {
+    new window.Notification(t("photoDueNotificationTitle"), {
+      body: t("photoDueNotificationBody"),
+      tag: notificationKey
+    });
+  } catch (error) {
+    console.error("Could not display the photo reminder notification.", error);
+    return;
+  }
+
+  try {
+    localStorage.setItem(notificationKey, "true");
+  } catch (error) {
+    console.error("Could not store the photo notification history.", error);
+  }
+}
+
+function isOfflineRequestError(error) {
+  return !navigator.onLine || error instanceof TypeError || error?.cause instanceof TypeError;
+}
+
 function BhoomitraApp() {
   const [today] = useState(() => new Date());
   const [plantPhotos, setPlantPhotos] = useState(createStarterPlantPhotos);
@@ -218,16 +325,19 @@ function BhoomitraApp() {
     const savedLanguage = localStorage.getItem("bhoomitra-language");
     return languages.some((item) => item.code === savedLanguage) ? savedLanguage : getDeviceLanguage();
   });
-  const [isFirstLaunch] = useState(() => (
-    localStorage.getItem("bhoomitra-has-seen-onboarding") !== "true"
-      && localStorage.getItem("bhoomitra-language") === null
-      && localStorage.getItem("bhoomitra-onboarding-in-progress") !== "true"
-  ));
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(() => {
     if (localStorage.getItem("bhoomitra-has-seen-onboarding") === "true") return true;
-    return !isFirstLaunch && localStorage.getItem("bhoomitra-onboarding-in-progress") !== "true";
+    return localStorage.getItem("bhoomitra-language") !== null
+      && localStorage.getItem("bhoomitra-onboarding-in-progress") !== "true";
   });
+  const [showOnboardingAgain, setShowOnboardingAgain] = useState(false);
   const [entries, setEntries] = useState([]);
+  const [firstCropEntryDone, setFirstCropEntryDone] = useState(() => localStorage.getItem("bhoomitra-checklist-first-crop") === "true");
+  const [firstCropTaskActive, setFirstCropTaskActive] = useState(() => localStorage.getItem("bhoomitra-first-crop-task-active") === "true");
+  const [plantPhotoDone, setPlantPhotoDone] = useState(() => localStorage.getItem("bhoomitra-checklist-first-photo") === "true");
+  const [advisoryViewed, setAdvisoryViewed] = useState(() => localStorage.getItem("bhoomitra-checklist-advisory") === "true");
+  const [cropLogSyncError, setCropLogSyncError] = useState("");
+  const pendingQueueSyncRef = useRef(false);
   const [batches, setBatches] = useState(() =>
     readStored("bhoomitra-trace-batches", starterBatches)
   );
@@ -246,6 +356,19 @@ function BhoomitraApp() {
     current: null,
     error: ""
   }));
+  const [plantPhotoSchedule, setPlantPhotoSchedule] = useState(null);
+  const [plantPhotoScheduleError, setPlantPhotoScheduleError] = useState("");
+  const selectedCrop = readStored("bhoomitra-onboarding-profile", {})?.crop || "pomegranate";
+  const activePhotoSchedule = plantPhotoSchedule?.ownerEmail === user?.email
+    && plantPhotoSchedule?.crop === selectedCrop
+    ? plantPhotoSchedule
+    : null;
+  const photoWeather = weatherState.current ? {
+    weatherCodes: weatherState.current.forecast?.weatherCodes || [weatherState.current.weatherCode],
+    humidity: weatherState.current.forecast?.humidity ?? weatherState.current.humidity,
+    rainChance: weatherState.current.forecast?.rainChance ?? weatherState.current.rainChance
+  } : null;
+  const photoWeatherKey = JSON.stringify(photoWeather);
 
   useEffect(() => {
     let active = true;
@@ -260,6 +383,11 @@ function BhoomitraApp() {
         if (!active) return;
         setUser(currentUser);
         setEntries(cropEntries);
+        if (cropEntries.length > 0) {
+          localStorage.setItem("bhoomitra-checklist-first-crop", "true");
+          setFirstCropEntryDone(true);
+          setFirstCropTaskActive(false);
+        }
         setAuthStatus("authenticated");
       })
       .catch((error) => {
@@ -271,6 +399,47 @@ function BhoomitraApp() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated" || !user?.email) return undefined;
+
+    let active = true;
+    async function syncQueuedCropLogMutations() {
+      if (!navigator.onLine || pendingQueueSyncRef.current) return;
+      pendingQueueSyncRef.current = true;
+      try {
+        let queue = readStored(cropLogQueueKey, []);
+        const accountQueue = queue.filter((item) => item.ownerEmail === user.email);
+        for (const mutation of accountQueue) {
+          if (mutation.action === "edit") {
+            await updateCropLogEntry(mutation.entryId, mutation.payload);
+          } else if (mutation.action === "void") {
+            await voidCropLogEntry(mutation.entryId, mutation.payload.reason);
+          } else if (mutation.action === "restore") {
+            await restoreCropLogEntry(mutation.entryId);
+          }
+          queue = queue.filter((item) => item.id !== mutation.id);
+          localStorage.setItem(cropLogQueueKey, JSON.stringify(queue));
+        }
+        if (active && accountQueue.length > 0) {
+          setEntries(await getCropLog({ includeVoid: true }));
+        }
+        if (active) setCropLogSyncError("");
+      } catch (error) {
+        console.error("Could not sync queued crop log changes.", error);
+        if (active) setCropLogSyncError(error.message);
+      } finally {
+        pendingQueueSyncRef.current = false;
+      }
+    }
+
+    window.addEventListener("online", syncQueuedCropLogMutations);
+    if (navigator.onLine) syncQueuedCropLogMutations();
+    return () => {
+      active = false;
+      window.removeEventListener("online", syncQueuedCropLogMutations);
+    };
+  }, [authStatus, user?.email]);
 
   useEffect(() => {
     let active = true;
@@ -336,6 +505,104 @@ function BhoomitraApp() {
   }, []);
 
   useEffect(() => {
+    if (authStatus !== "authenticated" || !user?.email) return undefined;
+
+    let active = true;
+    const weather = photoWeatherKey ? JSON.parse(photoWeatherKey) : null;
+    const ownerEmail = user.email;
+    const cacheKey = photoScheduleCacheKey(ownerEmail, selectedCrop);
+    async function loadPhotoSchedule() {
+      if (!navigator.onLine) {
+        const cached = readStored(cacheKey, null);
+        if (active && cached?.ownerEmail === ownerEmail) setPlantPhotoSchedule(cached);
+        setPlantPhotoScheduleError(translate(language, "photoReminderOffline"));
+        return;
+      }
+
+      const pendingKey = photoSchedulePendingKey(ownerEmail, selectedCrop);
+      const pending = readStored(pendingKey, null);
+      let pendingSyncError = "";
+      if (pending) {
+        try {
+          const synced = await updatePhotoSchedule({
+            crop: selectedCrop,
+            weather,
+            mode: pending.mode,
+            intervalDays: pending.interval_days,
+            t: (key) => translate(language, key)
+          });
+          localStorage.removeItem(pendingKey);
+          if (active) {
+            const ownedSchedule = { ...synced, ownerEmail };
+            setPlantPhotoSchedule(ownedSchedule);
+            setPlantPhotoScheduleError("");
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify(ownedSchedule));
+            } catch (error) {
+              console.error("Could not cache the synced photo reminder.", error);
+            }
+          }
+        } catch (error) {
+          console.error("Could not sync the saved photo reminder.", error);
+          pendingSyncError = isOfflineRequestError(error)
+            ? translate(language, "photoReminderSyncFailed")
+            : error.message;
+          if (active) {
+            setPlantPhotoScheduleError(pendingSyncError);
+          }
+          if (isOfflineRequestError(error)) return;
+        }
+      }
+
+      try {
+        const schedule = await getPhotoSchedule({
+          crop: selectedCrop,
+          weather,
+          t: (key) => translate(language, key)
+        });
+        if (active) {
+          const ownedSchedule = { ...schedule, ownerEmail };
+          setPlantPhotoSchedule(ownedSchedule);
+          setPlantPhotoScheduleError(pendingSyncError);
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(ownedSchedule));
+          } catch (error) {
+            console.error("Could not cache the photo reminder.", error);
+          }
+        }
+      } catch (error) {
+        console.error("Could not load the plant photo reminder.", error);
+        if (active) {
+          setPlantPhotoScheduleError(isOfflineRequestError(error)
+            ? translate(language, "photoReminderOffline")
+            : error.message);
+        }
+      }
+    }
+
+    function handlePhotoScheduleOffline() {
+      setPlantPhotoScheduleError(translate(language, "photoReminderOffline"));
+    }
+
+    window.addEventListener("online", loadPhotoSchedule);
+    window.addEventListener("offline", handlePhotoScheduleOffline);
+    const refreshTimer = window.setInterval(loadPhotoSchedule, 60 * 60 * 1000);
+    loadPhotoSchedule();
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("online", loadPhotoSchedule);
+      window.removeEventListener("offline", handlePhotoScheduleOffline);
+    };
+  }, [authStatus, language, selectedCrop, photoWeatherKey, user?.email]);
+
+  useEffect(() => {
+    if (authStatus === "authenticated") {
+      showDuePhotoNotification(activePhotoSchedule, (key) => translate(language, key));
+    }
+  }, [activePhotoSchedule, authStatus, language]);
+
+  useEffect(() => {
     if (feedback) {
       localStorage.setItem("bhoomitra-advisory-feedback", JSON.stringify(feedback));
     }
@@ -364,14 +631,9 @@ function BhoomitraApp() {
   }, []);
 
   useEffect(() => {
-    if (isFirstLaunch && !hasSeenOnboarding) {
-      localStorage.setItem("bhoomitra-onboarding-in-progress", "true");
-    }
-  }, [hasSeenOnboarding, isFirstLaunch]);
-
-  useEffect(() => {
     if (hasSeenOnboarding) {
       localStorage.setItem("bhoomitra-has-seen-onboarding", "true");
+      localStorage.setItem("bhoomitra-onboarding-complete", "true");
       localStorage.removeItem("bhoomitra-onboarding-in-progress");
     }
   }, [hasSeenOnboarding]);
@@ -379,7 +641,71 @@ function BhoomitraApp() {
   async function addEntry(entry) {
     const savedEntry = await createCropLogEntry(entry);
     setEntries((current) => [savedEntry, ...current]);
+    localStorage.setItem("bhoomitra-checklist-first-crop", "true");
+    localStorage.removeItem("bhoomitra-first-crop-task-active");
+    setFirstCropEntryDone(true);
+    setFirstCropTaskActive(false);
     return savedEntry;
+  }
+
+  function queueCropLogMutation(action, entryId, payload = {}) {
+    const queue = readStored(cropLogQueueKey, []);
+    const mutation = {
+      id: `${Date.now()}-${Math.random()}`,
+      ownerEmail: user.email,
+      action,
+      entryId,
+      payload
+    };
+    localStorage.setItem(cropLogQueueKey, JSON.stringify([...queue, mutation]));
+  }
+
+  async function editCropLogEntry(entryId, payload) {
+    try {
+      const updatedEntry = await updateCropLogEntry(entryId, payload);
+      setEntries((current) => current.map((entry) => entry.id === entryId ? updatedEntry : entry));
+      return { queued: false };
+    } catch (error) {
+      if (!isOfflineRequestError(error)) throw error;
+      queueCropLogMutation("edit", entryId, payload);
+      setEntries((current) => current.map((entry) => entry.id === entryId ? { ...entry, ...payload } : entry));
+      return { queued: true };
+    }
+  }
+
+  async function voidCropLogEntryWithQueue(entryId, reason) {
+    try {
+      const updatedEntry = await voidCropLogEntry(entryId, reason);
+      setEntries((current) => current.map((entry) => entry.id === entryId ? updatedEntry : entry));
+      return { entry: updatedEntry, queued: false };
+    } catch (error) {
+      if (!isOfflineRequestError(error)) throw error;
+      queueCropLogMutation("void", entryId, { reason });
+      const updatedEntry = entries.find((entry) => entry.id === entryId);
+      const voidedEntry = { ...updatedEntry, is_void: true, void_reason: reason };
+      setEntries((current) => current.map((entry) => entry.id === entryId ? voidedEntry : entry));
+      return { entry: voidedEntry, queued: true };
+    }
+  }
+
+  async function restoreCropLogEntryWithQueue(entryId) {
+    try {
+      const updatedEntry = await restoreCropLogEntry(entryId);
+      setEntries((current) => current.map((entry) => entry.id === entryId ? updatedEntry : entry));
+      return { queued: false };
+    } catch (error) {
+      if (!isOfflineRequestError(error)) throw error;
+      queueCropLogMutation("restore", entryId);
+      setEntries((current) => current.map((entry) => entry.id === entryId
+        ? { ...entry, is_void: false, void_reason: "", voided_at: null }
+        : entry));
+      return { queued: true };
+    }
+  }
+
+  async function loadCropLog(includeVoid) {
+    const cropEntries = await getCropLog({ includeVoid });
+    setEntries(cropEntries);
   }
 
   function addBatch(batch) {
@@ -388,6 +714,25 @@ function BhoomitraApp() {
 
   function addPlantPhoto(photo) {
     setPlantPhotos((current) => [photo, ...current]);
+    localStorage.setItem("bhoomitra-checklist-first-photo", "true");
+    setPlantPhotoDone(true);
+  }
+
+  function handlePhotoScheduleChange(schedule) {
+    const ownedSchedule = { ...schedule, ownerEmail: user.email };
+    setPlantPhotoSchedule(ownedSchedule);
+    setPlantPhotoScheduleError("");
+    try {
+      localStorage.setItem(photoScheduleCacheKey(user.email, schedule.crop), JSON.stringify(ownedSchedule));
+    } catch (error) {
+      console.error("Could not save the photo reminder on this device.", error);
+      setPlantPhotoScheduleError(translate(language, "photoScheduleLocalSaveFailed"));
+    }
+  }
+
+  function markAdvisoryViewed() {
+    localStorage.setItem("bhoomitra-checklist-advisory", "true");
+    setAdvisoryViewed(true);
   }
 
   function requestWeatherLocation() {
@@ -468,15 +813,25 @@ function BhoomitraApp() {
     setAuthStatus("anonymous");
   }
 
-  function finishOnboarding() {
+  function finishOnboarding(profile) {
+    localStorage.setItem("bhoomitra-onboarding-profile", JSON.stringify(profile));
     localStorage.setItem("bhoomitra-has-seen-onboarding", "true");
+    localStorage.setItem("bhoomitra-onboarding-complete", "true");
+    if (localStorage.getItem("bhoomitra-checklist-first-crop") !== "true") {
+      localStorage.setItem("bhoomitra-first-crop-task-active", "true");
+      setFirstCropTaskActive(true);
+    }
     localStorage.removeItem("bhoomitra-onboarding-in-progress");
+    localStorage.removeItem("bhoomitra-onboarding-progress");
     setHasSeenOnboarding(true);
+    setShowOnboardingAgain(false);
   }
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t: (key) => translate(language, key) }}>
-      {authStatus === "loading" ? (
+      {!hasSeenOnboarding || showOnboardingAgain ? (
+        <Onboarding onComplete={finishOnboarding} />
+      ) : authStatus === "loading" ? (
         <main className="ks-auth-loading" aria-label={translate(language, "loadingAccount")}>
           <section className="ks-loading-skeleton" aria-hidden="true">
             <span className="ks-skeleton ks-skeleton-heading" />
@@ -491,20 +846,18 @@ function BhoomitraApp() {
         </main>
       ) : authStatus === "error" ? (
         <main className="ks-auth-error" role="alert">{authError}</main>
-      ) : !hasSeenOnboarding ? (
-        <Onboarding onComplete={finishOnboarding} />
       ) : (
         <Routes>
-          <Route index element={authStatus === "authenticated" ? <Navigate to="/dashboard" replace /> : <LoginPage onAuthenticated={finishSignIn} />} />
+          <Route index element={authStatus === "authenticated" ? <Navigate to="/dashboard" replace /> : <LoginPage onAuthenticated={finishSignIn} initialName={readStored("bhoomitra-onboarding-profile", {})?.name || ""} />} />
           <Route path="trace/:batchId" element={<PublicTracePage batches={batches} />} />
-          <Route element={authStatus === "authenticated" ? <FarmerLayout today={today} user={user} onSignOut={signOut} /> : <Navigate to="/" replace />}>
-            <Route path="dashboard" element={<Dashboard today={today} user={user} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={getDaysUntilPlantPhoto(today, plantPhotos)} />} />
-            <Route path="crop-log" element={<CropLog today={today} entries={entries} onAddEntry={addEntry} />} />
+          <Route element={authStatus === "authenticated" ? <FarmerLayout today={today} user={user} photoSchedule={activePhotoSchedule} onSignOut={signOut} onAdvisoryViewed={markAdvisoryViewed} /> : <Navigate to="/" replace />}>
+            <Route path="dashboard" element={<Dashboard today={today} user={user} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={Math.max(0, activePhotoSchedule?.days_left ?? getDaysUntilPlantPhoto(today, plantPhotos))} photoSchedule={activePhotoSchedule} photoScheduleError={plantPhotoScheduleError} firstCropEntryDone={firstCropEntryDone || entries.some((entry) => !entry.is_void)} firstCropTaskActive={firstCropTaskActive} plantPhotoDone={plantPhotoDone || plantPhotos.length > 0} advisoryViewed={advisoryViewed} />} />
+            <Route path="crop-log" element={<CropLog today={today} entries={entries} onAddEntry={addEntry} onUpdateEntry={editCropLogEntry} onVoidEntry={voidCropLogEntryWithQueue} onRestoreEntry={restoreCropLogEntryWithQueue} onLoadEntries={loadCropLog} syncError={cropLogSyncError} />} />
             <Route path="advisory" element={<Advisory feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} />} />
-            <Route path="plant-health" element={<PlantHealth today={today} photos={plantPhotos} onAddPhoto={addPlantPhoto} />} />
+            <Route path="plant-health" element={<PlantHealth today={today} photos={plantPhotos} onAddPhoto={addPlantPhoto} crop={selectedCrop} ownerEmail={user.email} weather={photoWeather} schedule={activePhotoSchedule} scheduleError={plantPhotoScheduleError} onScheduleChange={handlePhotoScheduleChange} />} />
             <Route path="traceability" element={<Traceability batches={batches} onAddBatch={addBatch} farmerName={user?.name || ""} />} />
-            <Route path="account-settings" element={<AccountSettings user={user} onUserUpdated={setUser} onSignOut={signOut} language={language} setLanguage={setLanguage} t={(key) => translate(language, key)} />} />
-            <Route path="*" element={<Dashboard today={today} user={user} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={getDaysUntilPlantPhoto(today, plantPhotos)} />} />
+            <Route path="account-settings" element={<AccountSettings user={user} onUserUpdated={setUser} onSignOut={signOut} onShowTutorial={() => setShowOnboardingAgain(true)} language={language} setLanguage={setLanguage} t={(key) => translate(language, key)} />} />
+            <Route path="*" element={<Dashboard today={today} user={user} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={Math.max(0, activePhotoSchedule?.days_left ?? getDaysUntilPlantPhoto(today, plantPhotos))} photoSchedule={activePhotoSchedule} photoScheduleError={plantPhotoScheduleError} firstCropEntryDone={firstCropEntryDone || entries.some((entry) => !entry.is_void)} firstCropTaskActive={firstCropTaskActive} plantPhotoDone={plantPhotoDone || plantPhotos.length > 0} advisoryViewed={advisoryViewed} />} />
           </Route>
           <Route path="*" element={<Navigate to={authStatus === "authenticated" ? "/dashboard" : "/"} replace />} />
         </Routes>
@@ -515,100 +868,133 @@ function BhoomitraApp() {
 
 function Onboarding({ onComplete }) {
   const { language, setLanguage, t } = useLanguage();
-  const [stage, setStage] = useState("language");
-  const [slide, setSlide] = useState(0);
-  const slideKeys = ["onboardingSlideOne", "onboardingSlideTwo", "onboardingSlideThree"];
+  const [stage, setStage] = useState(() => readStored("bhoomitra-onboarding-progress", {})?.stage || "language");
+  const [profile, setProfile] = useState(() => readStored("bhoomitra-onboarding-profile", {
+    name: "",
+    village: "",
+    crop: "pomegranate"
+  }));
+  const [locationMessage, setLocationMessage] = useState("");
+  const [isLocating, setIsLocating] = useState(false);
 
-  function goNext() {
-    if (slide === slideKeys.length - 1) {
-      onComplete();
+  useEffect(() => {
+    localStorage.setItem("bhoomitra-onboarding-in-progress", "true");
+    localStorage.setItem("bhoomitra-onboarding-progress", JSON.stringify({ stage }));
+  }, [stage]);
+
+  function updateProfile(field, value) {
+    const updatedProfile = { ...profile, [field]: value };
+    setProfile(updatedProfile);
+    localStorage.setItem("bhoomitra-onboarding-profile", JSON.stringify(updatedProfile));
+  }
+
+  function useDeviceLocation() {
+    if (!navigator.geolocation) {
+      setLocationMessage(t("locationUnavailable"));
       return;
     }
-    setSlide((current) => current + 1);
+    setIsLocating(true);
+    setLocationMessage("");
+    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+      try {
+        const village = await reverseGeocode(coords.latitude, coords.longitude);
+        updateProfile("village", village);
+        setLocationMessage(village ? t("villageLocationFound") : t("villageEnterManually"));
+      } catch {
+        setLocationMessage(t("villageEnterManually"));
+      } finally {
+        setIsLocating(false);
+      }
+    }, () => {
+      setIsLocating(false);
+      setLocationMessage(t("villageEnterManually"));
+    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+  }
+
+  function listenToWelcome() {
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+    window.speechSynthesis.cancel();
+    const welcome = new window.SpeechSynthesisUtterance(t("onboardingWelcomeSentence"));
+    welcome.lang = language === "mr" ? "mr-IN" : "en-IN";
+    window.speechSynthesis.speak(welcome);
   }
 
   return (
     <main className="ks-onboarding">
-      {stage === "language" ? (
-        <section className="ks-onboarding-card ks-onboarding-language" aria-labelledby="onboarding-language-title">
-          <span className="ks-brand ks-onboarding-brand"><span className="ks-brand-icon">B</span>Bhoomitra</span>
-          <div className="ks-onboarding-language-icon" aria-hidden="true">文</div>
-          <p className="ks-eyebrow">{t("onboardingStepLanguage")}</p>
-          <h1 id="onboarding-language-title">{t("onboardingChooseLanguage")}</h1>
-          <div className="ks-onboarding-language-options" role="group" aria-label={t("onboardingChooseLanguage")}>
-            {languages.map((item) => (
-              <button
-                type="button"
-                key={item.code}
-                className={language === item.code ? "selected" : ""}
-                aria-pressed={language === item.code}
-                onClick={() => setLanguage(item.code)}
-              >
-                <span>{item.nativeName}</span>
-                {language === item.code && <span aria-hidden="true">✓</span>}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="ks-primary-button ks-onboarding-next" onClick={() => setStage("slides")}>
-            {t("next")} <span aria-hidden="true">→</span>
-          </button>
-        </section>
-      ) : (
-        <section className="ks-onboarding-card ks-onboarding-welcome" aria-live="polite">
-          <div className={`ks-onboarding-illustration ks-onboarding-illustration-${slide + 1}`} aria-hidden="true">
-            <svg viewBox="0 0 240 190">
-              <circle cx="120" cy="95" r="78" className="ks-onboarding-sun" />
-              <path d="M26 145c38-20 70-22 94-5 28-20 60-18 94 4v25H26Z" className="ks-onboarding-field ks-onboarding-field-back" />
-              <path d="M26 158c36-15 67-14 94 2 30-16 60-17 94-1v16H26Z" className="ks-onboarding-field ks-onboarding-field-front" />
-              {slide === 0 && (
-                <>
-                  <path d="M119 131c1-29 8-47 28-65" className="ks-onboarding-stem" />
-                  <path d="M125 105c-25-2-35-15-36-34 21 1 34 12 36 34Zm8-21c1-21 13-34 31-38 0 20-11 34-31 38Z" className="ks-onboarding-leaf" />
-                  <path d="M103 131h41" className="ks-onboarding-stem" />
-                </>
-              )}
-              {slide === 1 && (
-                <>
-                  <rect x="81" y="48" width="78" height="95" rx="12" className="ks-onboarding-note" />
-                  <path d="M101 76h39M101 94h39M101 112h25" className="ks-onboarding-lines" />
-                  <circle cx="91" cy="76" r="3" className="ks-onboarding-dot" />
-                  <circle cx="91" cy="94" r="3" className="ks-onboarding-dot" />
-                </>
-              )}
-              {slide === 2 && (
-                <>
-                  <path d="M91 124V81l29-20 29 20v43" className="ks-onboarding-home" />
-                  <path d="M82 84l38-27 38 27M111 124V98h18v26" className="ks-onboarding-home" />
-                  <circle cx="160" cy="57" r="16" className="ks-onboarding-harvest" />
-                  <path d="M160 45c-1 8-1 15 0 24m-10-12h20" className="ks-onboarding-harvest-line" />
-                </>
-              )}
-            </svg>
-          </div>
-          <h1>{t(slideKeys[slide])}</h1>
-          <div className="ks-onboarding-progress" aria-label={`${slide + 1} / ${slideKeys.length}`}>
-            {slideKeys.map((key, index) => (
-              <span key={key} className={index === slide ? "active" : ""} />
-            ))}
-          </div>
-          <div className="ks-onboarding-actions">
-            <button type="button" className="ks-onboarding-skip" onClick={onComplete}>{t("skip")}</button>
-            <button type="button" className="ks-primary-button" onClick={goNext}>
-              {slide === slideKeys.length - 1 ? t("onboardingStart") : t("next")}
-              <span aria-hidden="true">{slide === slideKeys.length - 1 ? "✓" : "→"}</span>
+      <section className="ks-onboarding-card ks-onboarding-welcome" aria-live="polite">
+        <HelpButton pageKey="helpOnboarding" />
+        <span className="ks-brand ks-onboarding-brand"><span className="ks-brand-icon">B</span>Bhoomitra</span>
+        <p className="ks-eyebrow">{t(`onboardingStep${stage[0].toUpperCase()}${stage.slice(1)}`)}</p>
+        {stage === "language" && (
+          <>
+            <h1>{t("onboardingChooseLanguage")}</h1>
+            <div className="ks-onboarding-language-options" role="group" aria-label={t("onboardingChooseLanguage")}>
+              {[{ code: "mr", key: "languageMarathi" }, { code: "en", key: "languageEnglish" }].map((item) => (
+                <button type="button" key={item.code} className={language === item.code ? "selected" : ""} aria-pressed={language === item.code} onClick={() => setLanguage(item.code)}>
+                  <span>{t(item.key)}</span>{language === item.code && <span aria-hidden="true">✓</span>}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {stage === "welcome" && (
+          <>
+            <div className="ks-onboarding-language-icon" aria-hidden="true">♧</div>
+            <h1>{t("onboardingWelcomeSentence")}</h1>
+            <button type="button" className="ks-secondary-button ks-onboarding-listen" onClick={listenToWelcome}>🔊 {t("listen")}</button>
+          </>
+        )}
+        {stage === "profile" && (
+          <form className="ks-onboarding-profile" onSubmit={(event) => { event.preventDefault(); setStage("firstTask"); }}>
+            <h1>{t("onboardingProfileTitle")}</h1>
+            <label>{t("yourName")}<input value={profile.name} onChange={(event) => updateProfile("name", event.target.value)} maxLength={80} required /></label>
+            <label>{t("villageName")}<input value={profile.village} onChange={(event) => updateProfile("village", event.target.value)} /></label>
+            <button type="button" className="ks-secondary-button ks-location-button" onClick={useDeviceLocation} disabled={isLocating}>
+              {isLocating ? t("gettingLocation") : t("useMyLocation")}
             </button>
+            {locationMessage && <p className="ks-onboarding-location-message" role="status">{locationMessage}</p>}
+            <fieldset>
+              <legend>{t("mainCrop")}</legend>
+              <div className="ks-onboarding-crop-options">
+                {[
+                  { id: "pomegranate", icon: "🍎", key: "cropPomegranate" },
+                  { id: "tomato", icon: "🍅", key: "cropTomato" },
+                  { id: "cotton", icon: "☁️", key: "cropCotton" },
+                  { id: "onion", icon: "🧅", key: "cropOnion" }
+                ].map((crop) => (
+                  <button type="button" key={crop.id} className={profile.crop === crop.id ? "selected" : ""} aria-pressed={profile.crop === crop.id} onClick={() => updateProfile("crop", crop.id)}>
+                    <span aria-hidden="true">{crop.icon}</span><strong>{t(crop.key)}</strong>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <button type="submit" className="ks-primary-button ks-onboarding-next">{t("next")}</button>
+          </form>
+        )}
+        {stage === "firstTask" && (
+          <div className="ks-onboarding-first-task">
+            <div className="ks-onboarding-language-icon" aria-hidden="true">☷</div>
+            <h1>{t("onboardingFirstTaskTitle")}</h1>
+            <p>{t("onboardingFirstTaskHelp")}</p>
+            <button type="button" className="ks-primary-button ks-onboarding-next" onClick={() => onComplete(profile)}>{t("onboardingFirstTaskAction")}</button>
           </div>
-        </section>
-      )}
+        )}
+        {stage !== "profile" && (
+          <div className="ks-onboarding-actions">
+            {stage !== "language" && <button type="button" className="ks-onboarding-skip" onClick={() => setStage(stage === "firstTask" ? "profile" : stage === "profile" ? "welcome" : "language")}>{t("back")}</button>}
+            {stage !== "firstTask" && <button type="button" className="ks-primary-button" onClick={() => setStage(stage === "language" ? "welcome" : stage === "welcome" ? "profile" : "firstTask")}>{t("next")}</button>}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
 
-function LoginPage({ onAuthenticated }) {
+function LoginPage({ onAuthenticated, initialName = "" }) {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const [isRegistering, setIsRegistering] = useState(false);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -652,7 +1038,7 @@ function LoginPage({ onAuthenticated }) {
         <span className="ks-art-caption">Bhoomitra · {t("tagline")}</span>
       </div>
       <section className="ks-login-card">
-        <div className="ks-login-language"><LanguageSelect language={language} onChange={setLanguage} t={t} /></div>
+        <div className="ks-login-language"><LanguageSelect language={language} onChange={setLanguage} t={t} /><HelpButton pageKey="helpLogin" /></div>
         <span className="ks-back-link">{t("workspace").toUpperCase()}</span>
         <div className="ks-brand ks-login-brand"><span className="ks-brand-icon">B</span>Bhoomitra</div>
         <p className="ks-eyebrow">{t("welcomeFarmer")}</p>
@@ -795,100 +1181,164 @@ function LanguageSelect({ language, onChange, t }) {
   );
 }
 
-const farmerTourSteps = [
-  { target: "overview", title: "tourOverviewTitle", body: "tourOverviewBody" },
-  { target: "crop-log", title: "tourCropTitle", body: "tourCropBody" },
-  { target: "plant-health", title: "tourPlantTitle", body: "tourPlantBody" },
-  { target: "traceability", title: "tourTraceTitle", body: "tourTraceBody" }
-];
-
-function FarmerTour({ step, onStepChange, onClose }) {
-  const { t } = useLanguage();
-  const [targetRect, setTargetRect] = useState(null);
-  const currentStep = farmerTourSteps[step];
+function HelpButton({ pageKey }) {
+  const { language, t } = useLanguage();
+  const [isOpen, setIsOpen] = useState(false);
+  const [speechError, setSpeechError] = useState("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const activeUtteranceRef = useRef(null);
+  const speechStartTimeoutRef = useRef(null);
 
   useEffect(() => {
-    const updateTarget = () => {
-      const target = document.querySelector(`[data-tour-target="${currentStep.target}"]`);
-      if (!target) {
-        setTargetRect(null);
-        return;
-      }
-      const rect = target.getBoundingClientRect();
-      setTargetRect({
-        x: rect.left - 6,
-        y: rect.top - 6,
-        width: rect.width + 12,
-        height: rect.height + 12
-      });
+    if (!isOpen) return;
+    window.speechSynthesis?.getVoices();
+  }, [isOpen]);
+
+  useEffect(() => () => {
+    window.clearTimeout(speechStartTimeoutRef.current);
+    window.speechSynthesis?.cancel();
+  }, []);
+
+  function stopSpeaking() {
+    window.clearTimeout(speechStartTimeoutRef.current);
+    activeUtteranceRef.current = null;
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
+  }
+
+  function listen() {
+    if (isSpeaking) {
+      stopSpeaking();
+      return;
+    }
+
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+      setSpeechError(t("speechUnavailable"));
+      return;
+    }
+
+    setSpeechError("");
+    const synthesis = window.speechSynthesis;
+    const message = new window.SpeechSynthesisUtterance(t(pageKey));
+    const locale = { mr: "mr-IN", hi: "hi-IN", en: "en-IN" }[language] || language;
+    const voices = synthesis.getVoices();
+    const normalizedLocale = locale.toLowerCase();
+    const matchingVoice = voices.find((voice) => voice.lang.toLowerCase().replaceAll("_", "-") === normalizedLocale)
+      || voices.find((voice) => voice.lang.toLowerCase().replaceAll("_", "-").startsWith(`${normalizedLocale.split("-")[0]}-`));
+
+    message.lang = locale;
+    if (matchingVoice) message.voice = matchingVoice;
+    message.rate = 0.9;
+    message.volume = 1;
+    message.onstart = () => {
+      if (activeUtteranceRef.current !== message) return;
+      window.clearTimeout(speechStartTimeoutRef.current);
+      setIsSpeaking(true);
+    };
+    message.onend = () => {
+      if (activeUtteranceRef.current !== message) return;
+      window.clearTimeout(speechStartTimeoutRef.current);
+      activeUtteranceRef.current = null;
+      setIsSpeaking(false);
+    };
+    message.onerror = (event) => {
+      if (activeUtteranceRef.current !== message) return;
+      window.clearTimeout(speechStartTimeoutRef.current);
+      activeUtteranceRef.current = null;
+      setIsSpeaking(false);
+      if (event.error === "canceled" || event.error === "interrupted") return;
+      setSpeechError(t(event.error === "not-allowed" ? "speechPermissionDenied" : "speechPlaybackFailed"));
     };
 
-    updateTarget();
-    window.addEventListener("resize", updateTarget);
-    window.addEventListener("scroll", updateTarget, true);
-    return () => {
-      window.removeEventListener("resize", updateTarget);
-      window.removeEventListener("scroll", updateTarget, true);
-    };
-  }, [currentStep]);
-
-  function nextStep() {
-    if (step === farmerTourSteps.length - 1) {
-      onClose();
-    } else {
-      onStepChange(step + 1);
+    try {
+      synthesis.cancel();
+      synthesis.resume();
+      activeUtteranceRef.current = message;
+      setIsSpeaking(true);
+      synthesis.speak(message);
+      speechStartTimeoutRef.current = window.setTimeout(() => {
+        if (activeUtteranceRef.current !== message) return;
+        activeUtteranceRef.current = null;
+        synthesis.cancel();
+        setIsSpeaking(false);
+        setSpeechError(t("speechPlaybackFailed"));
+      }, 5000);
+    } catch (error) {
+      activeUtteranceRef.current = null;
+      setIsSpeaking(false);
+      setSpeechError(t("speechPlaybackFailed"));
+      console.error("Could not start spoken help.", error);
     }
   }
 
+  function close() {
+    stopSpeaking();
+    setIsOpen(false);
+  }
+
   return (
-    <div className="ks-tour-overlay">
-      {targetRect && (
-        <svg className="ks-tour-spotlight" aria-hidden="true">
-          <defs>
-            <mask id="ks-tour-mask">
-              <rect width="100%" height="100%" fill="white" />
-              <rect
-                x={targetRect.x}
-                y={targetRect.y}
-                width={targetRect.width}
-                height={targetRect.height}
-                rx="16"
-                fill="black"
-              />
-            </mask>
-          </defs>
-          <rect width="100%" height="100%" fill="rgba(16, 35, 23, 0.68)" mask="url(#ks-tour-mask)" />
-          <rect
-            className="ks-tour-spotlight-ring"
-            x={targetRect.x}
-            y={targetRect.y}
-            width={targetRect.width}
-            height={targetRect.height}
-            rx="16"
-          />
-        </svg>
-      )}
-      <section className="ks-tour-card" role="dialog" aria-modal="true" aria-labelledby="ks-tour-title">
-        <p className="ks-eyebrow">{t("tourStep").replace("{current}", String(step + 1)).replace("{total}", String(farmerTourSteps.length))}</p>
-        <h2 id="ks-tour-title">{t(currentStep.title)}</h2>
-        <p>{t(currentStep.body)}</p>
-        <div className="ks-tour-actions">
-          <button type="button" className="ks-tour-skip" onClick={onClose}>{t("skipTour")}</button>
-          {step > 0 && <button type="button" className="ks-tour-back" onClick={() => onStepChange(step - 1)}>{t("back")}</button>}
-          <button type="button" className="ks-primary-button" onClick={nextStep}>
-            {step === farmerTourSteps.length - 1 ? t("done") : t("next")}
-          </button>
+    <>
+      <button type="button" className="ks-help-button" aria-label={t("helpTitle")} title={t("helpTitle")} onClick={() => setIsOpen(true)}>?</button>
+      {isOpen && (
+        <div className="ks-help-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+          <section className="ks-help-dialog" role="dialog" aria-modal="true" aria-labelledby="ks-help-title">
+            <div className="ks-panel-heading"><h2 id="ks-help-title">{t("helpTitle")}</h2><button type="button" className="ks-close-button" aria-label={t("close")} onClick={close}>×</button></div>
+            <p>{t(pageKey)}</p>
+            {speechError && <p className="ks-form-error" role="status">{speechError}</p>}
+            <button type="button" className="ks-primary-button" onClick={listen} aria-pressed={isSpeaking}>
+              {isSpeaking ? `⏹ ${t("stopListening")}` : `🔊 ${t("listen")}`}
+            </button>
+          </section>
         </div>
-      </section>
+      )}
+    </>
+  );
+}
+function PageEmptyState({ title, description, action, to, onAction }) {
+  return (
+    <div className="ks-page-empty-state">
+      <h2>{title}</h2>
+      <p>{description}</p>
+      {to
+        ? <Link to={to} className="ks-primary-button">{action}</Link>
+        : <button type="button" className="ks-primary-button" onClick={onAction}>{action}</button>}
     </div>
   );
 }
 
-function FarmerLayout({ today, user, onSignOut }) {
+function FarmerNavIcon({ name }) {
+  const paths = {
+    overview: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9M9 20v-6h6v6" /></>,
+    cropLog: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1M8 9h8M8 13h8M8 17h5" /></>,
+    advisory: <><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 4a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.4Z" /><path d="M8 12h8M8 15h5" /></>,
+    plantHealth: <><path d="M20 4c-8 0-14 3.5-14 10a6 6 0 0 0 6 6c6.5 0 8-8 8-16Z" /><path d="M4 21c3-5 7-8 12-11" /></>,
+    traceability: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3h-3zM20 14v2M14 20h2M19 19v2M21 21h-2" /></>
+  };
+
+  return (
+    <svg className="ks-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      {paths[name]}
+    </svg>
+  );
+}
+
+function FarmerLayout({ today, user, photoSchedule, onSignOut, onAdvisoryViewed }) {
   const { language, setLanguage, t } = useLanguage();
+  const location = useLocation();
   const [signOutError, setSignOutError] = useState("");
-  const [tourStep, setTourStep] = useState(null);
   const farmerName = user.name;
+  const helpKeyByPath = {
+    "/dashboard": "helpDashboard",
+    "/crop-log": "helpCropLog",
+    "/plant-health": "helpPlantHealth",
+    "/advisory": "helpAdvisory",
+    "/traceability": "helpTraceability",
+    "/account-settings": "helpSettings"
+  };
+
+  useEffect(() => {
+    if (location.pathname === "/advisory") onAdvisoryViewed();
+  }, [location.pathname, onAdvisoryViewed]);
 
   async function handleSignOut() {
     try {
@@ -906,11 +1356,11 @@ function FarmerLayout({ today, user, onSignOut }) {
         </Link>
         <p className="ks-sidebar-label">{t("farmManagement")}</p>
         <nav className="ks-nav" aria-label={t("farmerDashboard")}>
-          <NavLink to="/dashboard" data-tour-target="overview"><span aria-hidden="true">⌂</span><span className="ks-nav-label">{t("overview")}</span></NavLink>
-          <NavLink to="/crop-log" data-tour-target="crop-log"><span aria-hidden="true">☷</span><span className="ks-nav-label">{t("cropLog")}</span></NavLink>
-          <NavLink to="/advisory"><span aria-hidden="true">✳</span><span className="ks-nav-label">{t("advisory")}</span></NavLink>
-          <NavLink to="/plant-health" data-tour-target="plant-health"><span className="ks-nav-leaf" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 4c-8 0-14 3.5-14 10a6 6 0 0 0 6 6c6.5 0 8-8 8-16Z" /><path d="M4 21c3-5 7-8 12-11" /></svg></span><span className="ks-nav-label">{t("plantHealth")}</span></NavLink>
-          <NavLink to="/traceability" data-tour-target="traceability"><span aria-hidden="true">▦</span><span className="ks-nav-label">{t("traceability")}</span></NavLink>
+          <NavLink to="/dashboard" data-tour-target="overview"><FarmerNavIcon name="overview" /><span className="ks-nav-label">{t("overview")}</span><span className="ks-nav-label-short">{t("navOverviewShort")}</span></NavLink>
+          <NavLink to="/crop-log" data-tour-target="crop-log"><FarmerNavIcon name="cropLog" /><span className="ks-nav-label">{t("cropLog")}</span><span className="ks-nav-label-short">{t("navCropLogShort")}</span></NavLink>
+          <NavLink to="/advisory"><FarmerNavIcon name="advisory" /><span className="ks-nav-label">{t("advisory")}</span><span className="ks-nav-label-short">{t("navAdvisoryShort")}</span></NavLink>
+          <NavLink to="/plant-health" data-tour-target="plant-health"><FarmerNavIcon name="plantHealth" /><span className="ks-nav-label">{t("plantHealth")}</span><span className="ks-nav-label-short">{t("navPlantHealthShort")}</span></NavLink>
+          <NavLink to="/traceability" data-tour-target="traceability"><FarmerNavIcon name="traceability" /><span className="ks-nav-label">{t("traceability")}</span><span className="ks-nav-label-short">{t("navTraceabilityShort")}</span></NavLink>
           <NavLink to="/account-settings"><span aria-hidden="true">⚙</span><span className="ks-nav-label">{t("accountSettings")}</span></NavLink>
         </nav>
         <div className="ks-sidebar-bottom">
@@ -931,27 +1381,68 @@ function FarmerLayout({ today, user, onSignOut }) {
       </aside>
       <div className="ks-main">
         <header className="ks-topbar">
-          <div>
+          <Link to="/dashboard" className="ks-mobile-brand">
+            <span className="ks-brand-icon">B</span><span>Bhoomitra</span>
+          </Link>
+          <div className="ks-topbar-copy">
             <p className="ks-topbar-date">{today.toLocaleDateString(localeFallbacks[language] || language, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
             <p className="ks-topbar-context">{t("fieldsLookingGood")}</p>
           </div>
           <div className="ks-topbar-tools">
             <button type="button" className="ks-mobile-logout" aria-label={t("signOut")} onClick={handleSignOut}>↗</button>
+            <Link to="/account-settings" className="ks-settings-link" aria-label={t("accountSettings")} title={t("accountSettings")}>⚙</Link>
             <LanguageSelect language={language} onChange={setLanguage} t={t} />
-            <button type="button" className="ks-help-button" aria-label={t("openTour")} title={t("openTour")} data-tour-target="help" onClick={() => setTourStep(0)}>?</button>
+            <HelpButton pageKey={helpKeyByPath[location.pathname] || "helpDashboard"} />
+            <Link to="/account-settings" className="ks-mobile-profile" aria-label={t("accountSettings")} title={t("accountSettings")}>
+              {user.avatarData ? <img src={user.avatarData} alt="" /> : farmerName.trim().charAt(0).toUpperCase()}
+            </Link>
             <span className="ks-workspace-tag">BHOOMITRA</span>
           </div>
         </header>
-        <main className="ks-content"><Outlet /></main>
+        <main className="ks-content">
+          {photoSchedule && ["due_today", "overdue"].includes(photoSchedule.status)
+            && !["/dashboard", "/plant-health"].includes(location.pathname) && (
+              <Link
+                to="/plant-health"
+                state={{ openPlantPhotoUpload: true }}
+                className={`ks-photo-due-notice is-${photoSchedule.status}`}
+                aria-live="polite"
+              >
+                <span><strong>{t(photoSchedule.status === "overdue" ? "photoReminderOverdue" : "photoReminderDueToday")}</strong><small>{t("photoDueBannerDescription")}</small></span>
+                <span>{t("takePhoto")} →</span>
+              </Link>
+            )}
+          <Outlet />
+        </main>
       </div>
-      {tourStep !== null && (
-        <FarmerTour
-          step={tourStep}
-          onStepChange={setTourStep}
-          onClose={() => setTourStep(null)}
-        />
-      )}
     </div>
+  );
+}
+
+function PhotoReminderCard({ schedule, error, t, children }) {
+  const status = schedule?.status || "loading";
+  const days = schedule?.days_left ?? 0;
+  const title = status === "overdue"
+    ? t("photoReminderOverdue")
+    : status === "due_today"
+      ? t("photoReminderDueToday")
+      : status === "ok"
+        ? t("photoReminderIn").replace("{days}", days)
+        : t("photoReminderLoading");
+  const reason = schedule
+    ? t(`photoScheduleReason_${schedule.reason}`).replace("{days}", schedule.interval_days)
+    : "";
+
+  return (
+    <section className={`ks-photo-reminder-card is-${status}`} aria-live="polite">
+      <div className="ks-photo-reminder-copy">
+        <p className="ks-eyebrow">{t("photoReminderTitle").toUpperCase()}</p>
+        <h2>{title}</h2>
+        {reason && <p>{reason}</p>}
+        {error && <p className="ks-photo-reminder-error" role="status">{error}</p>}
+      </div>
+      <div className="ks-photo-reminder-actions">{children}</div>
+    </section>
   );
 }
 
@@ -965,34 +1456,76 @@ function Dashboard({
   weatherLocation,
   onRequestLocation,
   onSelectLocation,
-  daysUntilPlantPhoto
+  daysUntilPlantPhoto,
+  photoSchedule,
+  photoScheduleError,
+  firstCropEntryDone,
+  firstCropTaskActive,
+  plantPhotoDone,
+  advisoryViewed
 }) {
   const { language, t } = useLanguage();
   const recentEntry = entries[0];
+  const firstName = user.name.trim().split(/\s+/)[0] || user.name;
+  const suggestedTask = !firstCropEntryDone
+    ? { title: t("onboardingFirstTaskTitle"), description: t("onboardingFirstTaskHelp"), to: "/crop-log" }
+    : daysUntilPlantPhoto === 0
+      ? { title: t("plantPhotoDue"), description: t("plantPhotoDueDescription"), to: "/plant-health" }
+      : { title: t("checkTomatoPlants"), description: t("inspectSoil"), to: "/plant-health" };
 
   return (
     <>
       <div className="ks-page-heading">
         <div>
-          <p className="ks-eyebrow">{today.toLocaleDateString(localeFallbacks[language] || language, { weekday: "long", month: "long", day: "numeric", year: "numeric" }).toUpperCase()}</p>
-          <h1>{t("goodMorning")}, {user.name} <span>☀</span></h1>
-          <p>{t("dashboardIntro")}</p>
+          <h1>{t("goodMorning")}, {firstName}</h1>
+          <p className="ks-dashboard-date">{today.toLocaleDateString(localeFallbacks[language] || language, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
         </div>
         <Link to="/crop-log" className="ks-primary-button ks-heading-button">＋ {t("logFarmActivity")}</Link>
       </div>
-      {entries.length === 0 && (
-        <Link to="/crop-log" className="ks-dashboard-first-entry-hint">
-          <span aria-hidden="true">✳</span>{t("firstEntryHomeHint")} <strong>＋</strong>
+      <article className="ks-stat-card ks-overview-weather">
+        <WeatherCard
+          weatherState={weatherState}
+          weatherLocation={weatherLocation}
+          onRequestLocation={onRequestLocation}
+          onSelectLocation={onSelectLocation}
+        />
+      </article>
+      <PhotoReminderCard schedule={photoSchedule} error={photoScheduleError} t={t}>
+        <Link
+          to="/plant-health"
+          state={{ openPlantPhotoUpload: true }}
+          className="ks-primary-button"
+        >
+          {t("takePhoto")}
         </Link>
+      </PhotoReminderCard>
+      <Link to={suggestedTask.to} className="ks-overview-task">
+        <span className="ks-overview-task-icon" aria-hidden="true">✓</span>
+        <span><span className="ks-eyebrow">{t("todaySuggestedTask")}</span><strong>{suggestedTask.title}</strong><span>{suggestedTask.description}</span></span>
+        <span className="ks-overview-task-arrow" aria-hidden="true">→</span>
+      </Link>
+
+      {firstCropTaskActive && !firstCropEntryDone && (
+        <section className="ks-first-task-guidance" aria-labelledby="first-task-title">
+          <div><p className="ks-eyebrow">{t("firstTaskLabel")}</p><h2 id="first-task-title">{t("onboardingFirstTaskTitle")}</h2><p>{t("onboardingFirstTaskHelp")}</p></div>
+          <Link to="/crop-log" className="ks-primary-button ks-first-task-action">{t("onboardingFirstTaskAction")}</Link>
+        </section>
       )}
 
-      {daysUntilPlantPhoto === 0 && (
-        <Link to="/plant-health" className="ks-plant-due-banner">
-          <span className="ks-plant-due-icon" aria-hidden="true">♧</span>
-          <span><strong>{t("plantPhotoDue")}</strong><small>{t("plantPhotoDueDescription")}</small></span>
-          <span className="ks-plant-due-action">{t("takePhotoNow")} →</span>
-        </Link>
-      )}
+      <section className="ks-dashboard-checklist" aria-labelledby="checklist-title">
+        <div className="ks-panel-heading"><div><p className="ks-eyebrow">{t("gettingStarted")}</p><h2 id="checklist-title">{t("farmerChecklist")}</h2></div></div>
+        <div className="ks-checklist-items">
+          {[
+            { done: firstCropEntryDone, label: "checklistFirstEntry", to: "/crop-log" },
+            { done: plantPhotoDone, label: "checklistFirstPhoto", to: "/plant-health" },
+            { done: advisoryViewed, label: "checklistAdvisory", to: "/advisory" }
+          ].map((item) => (
+            <Link to={item.to} className={`ks-checklist-item${item.done ? " complete" : ""}`} key={item.label} aria-current={item.done ? "step" : undefined}>
+              <span className="ks-checklist-mark" aria-hidden="true">{item.done ? "✓" : "○"}</span><span>{t(item.label)}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="ks-stat-grid" aria-label={t("farmOverview")}>
         <article className="ks-stat-card ks-crop-stat">
@@ -1006,14 +1539,6 @@ function Dashboard({
           <p className="ks-stat-label">{t("activitiesLogged").toUpperCase()}</p>
           <h2>{entries.length}</h2>
           <p className="ks-stat-foot">{t("savedToAccount")}</p>
-        </article>
-        <article className="ks-stat-card ks-weather-card">
-          <WeatherCard
-            weatherState={weatherState}
-            weatherLocation={weatherLocation}
-            onRequestLocation={onRequestLocation}
-            onSelectLocation={onSelectLocation}
-          />
         </article>
       </section>
 
@@ -1034,7 +1559,9 @@ function Dashboard({
             <div><p className="ks-eyebrow">{t("fieldOneDesiTomato").toUpperCase()}</p><h2>{t("recentActivity")}</h2></div>
             <Link to="/crop-log" className="ks-inline-link">{t("viewLog")} →</Link>
           </div>
-          {entries.slice(0, 2).map((entry) => (
+          {entries.length === 0 ? (
+            <PageEmptyState title={t("noActivitiesYet")} description={t("cropLogEmptyMessage")} action={t("addEntry")} to="/crop-log" />
+          ) : entries.slice(0, 2).map((entry) => (
             <div className="ks-mini-entry" key={entry.id}>
               <span className="ks-mini-dot" />
               <div><strong>{t("day")} {entry.day}: {getEntryText(entry, "title", t)}</strong><span>{formatLogDate(entry.date, language)}</span></div>
@@ -1162,18 +1689,27 @@ function WeatherCard({ weatherState, weatherLocation, onRequestLocation, onSelec
   );
 }
 
-function CropLog({ today, entries, onAddEntry }) {
+function CropLog({ today, entries, onAddEntry, onUpdateEntry, onVoidEntry, onRestoreEntry, onLoadEntries, syncError }) {
   const { language, t } = useLanguage();
   const [formOpen, setFormOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
   const [selectedType, setSelectedType] = useState(cropActivityTypes[0]);
   const [date, setDate] = useState(() => formatInputDate(today));
+  const [entryTitle, setEntryTitle] = useState("");
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [syncNotice, setSyncNotice] = useState("");
+  const [showVoided, setShowVoided] = useState(false);
+  const [voidTarget, setVoidTarget] = useState(null);
+  const [voidReason, setVoidReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessageKey, setToastMessageKey] = useState("entrySaved");
+  const [voidToastEntryId, setVoidToastEntryId] = useState(null);
   const dialogRef = useRef(null);
   const voiceRecognitionRef = useRef(null);
   const toastTimeoutRef = useRef(null);
@@ -1233,10 +1769,25 @@ function CropLog({ today, entries, onAddEntry }) {
   }, []);
 
   function openForm(type = cropActivityTypes[0]) {
+    setEditingEntry(null);
     setSelectedType(type);
     setDate(formatInputDate(today));
+    setEntryTitle(t(type.key));
     setDescription("");
     setPhotoUrl("");
+    setPhotoError("");
+    setSaveError("");
+    setFormOpen(true);
+  }
+
+  function openEditForm(entry) {
+    const detectedType = getCropActivityType(entry.title);
+    setEditingEntry(entry);
+    setSelectedType(cropActivityTypes.find((type) => type.id === detectedType?.id) || cropActivityTypes[0]);
+    setDate(entry.date);
+    setEntryTitle(entry.title);
+    setDescription(entry.description);
+    setPhotoUrl(entry.photoUrl || "");
     setPhotoError("");
     setSaveError("");
     setFormOpen(true);
@@ -1273,17 +1824,30 @@ function CropLog({ today, entries, onAddEntry }) {
   async function handleSubmit(event) {
     event.preventDefault();
     if (isSaving) return;
+    const isFirstOnboardingEntry = !editingEntry
+      && localStorage.getItem("bhoomitra-first-crop-task-active") === "true";
     setIsSaving(true);
     setSaveError("");
     try {
-      await onAddEntry({
-        day: entries.length + 1,
-        date,
-        title: t(selectedType.key),
-        description: description.trim(),
-        photoUrl
-      });
+      const result = editingEntry
+        ? await onUpdateEntry(editingEntry.id, {
+          date,
+          title: entryTitle,
+          description: description.trim(),
+          photoUrl
+        })
+        : await onAddEntry({
+          day: entries.filter((entry) => !entry.is_void).length + 1,
+          date,
+          title: entryTitle,
+          description: description.trim(),
+          photoUrl
+        });
+      if (result?.queued) setSyncNotice(t("offlineSyncNotice"));
       setFormOpen(false);
+      setToastMessageKey(editingEntry ? "entryUpdated" : "entrySaved");
+        setToastMessageKey(isFirstOnboardingEntry ? "firstCropSuccess" : editingEntry ? "entryUpdated" : "entrySaved");
+      setVoidToastEntryId(null);
       setToastVisible(true);
       window.clearTimeout(toastTimeoutRef.current);
       toastTimeoutRef.current = window.setTimeout(() => setToastVisible(false), 3200);
@@ -1291,6 +1855,55 @@ function CropLog({ today, entries, onAddEntry }) {
       setSaveError(error.message);
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleVoidEntry() {
+    if (!voidTarget) return;
+    setActionError("");
+    try {
+      const result = await onVoidEntry(voidTarget.id, voidReason.trim());
+      if (result.queued) setSyncNotice(t("offlineSyncNotice"));
+      setVoidTarget(null);
+      setToastMessageKey("voidedToast");
+      setVoidToastEntryId(voidTarget.id);
+      setToastVisible(true);
+      window.clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = window.setTimeout(() => {
+        setToastVisible(false);
+        setVoidToastEntryId(null);
+      }, 8000);
+    } catch (error) {
+      setActionError(error.message);
+    }
+  }
+
+  async function handleRestoreEntry(entryId, fromToast = false) {
+    setActionError("");
+    try {
+      const result = await onRestoreEntry(entryId);
+      if (result.queued) setSyncNotice(t("offlineSyncNotice"));
+      if (fromToast) {
+        window.clearTimeout(toastTimeoutRef.current);
+        setToastMessageKey("entryRestored");
+        setVoidToastEntryId(null);
+        setToastVisible(true);
+        toastTimeoutRef.current = window.setTimeout(() => setToastVisible(false), 3200);
+      }
+    } catch (error) {
+      setActionError(error.message);
+    }
+  }
+
+  async function handleShowVoided(event) {
+    const includeVoid = event.target.checked;
+    setShowVoided(includeVoid);
+    setActionError("");
+    try {
+      await onLoadEntries(includeVoid);
+    } catch (error) {
+      setActionError(error.message);
+      setShowVoided(!includeVoid);
     }
   }
 
@@ -1325,12 +1938,21 @@ function CropLog({ today, entries, onAddEntry }) {
     reader.readAsDataURL(file);
   }
 
+  const visibleEntries = showVoided ? entries : entries.filter((entry) => !entry.is_void);
+
   return (
     <>
       <div className="ks-page-heading">
         <div><h1>{t("cropLog")}</h1><p>{t("cropLogDescription")}</p></div>
         <button type="button" className="ks-primary-button ks-heading-button" onClick={() => openForm()}>＋ {t("addEntry")}</button>
       </div>
+      <label className="ks-void-toggle">
+        <input type="checkbox" checked={showVoided} onChange={handleShowVoided} />
+        <span>{t("showVoidedEntries")}</span>
+      </label>
+      {syncNotice && <p className="ks-offline-notice" role="status">{syncNotice}</p>}
+      {syncError && <p className="ks-form-error ks-crop-action-error" role="alert">{syncError}</p>}
+      {actionError && <p className="ks-form-error ks-crop-action-error" role="alert">{actionError}</p>}
 
       {formOpen && (
         <div className="ks-crop-modal-backdrop" onMouseDown={(event) => {
@@ -1344,7 +1966,7 @@ function CropLog({ today, entries, onAddEntry }) {
             ref={dialogRef}
           >
             <div className="ks-panel-heading">
-              <div><p className="ks-eyebrow">{t("fieldNotes").toUpperCase()}</p><h2 id="crop-entry-modal-title">{t("addEntry")}</h2></div>
+              <div><p className="ks-eyebrow">{t("fieldNotes").toUpperCase()}</p><h2 id="crop-entry-modal-title">{editingEntry ? t("editEntry") : t("addEntry")}</h2></div>
               <button type="button" className="ks-close-button" onClick={closeForm} aria-label={t("close")} disabled={isSaving}>×</button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -1357,9 +1979,12 @@ function CropLog({ today, entries, onAddEntry }) {
                       className={`ks-crop-type-chip${selectedType.id === type.id ? " selected" : ""}`}
                       key={type.id}
                       aria-pressed={selectedType.id === type.id}
-                      onClick={() => setSelectedType(type)}
+                      onClick={() => {
+                        setSelectedType(type);
+                        setEntryTitle(t(type.key));
+                      }}
                     >
-                      <span aria-hidden="true">{type.icon}</span>{type.label}
+                      <span aria-hidden="true">{type.icon}</span>{t(type.key)}
                     </button>
                   ))}
                 </div>
@@ -1398,16 +2023,39 @@ function CropLog({ today, entries, onAddEntry }) {
               {saveError && <p className="ks-form-error" role="alert">{saveError}</p>}
               <button type="submit" className="ks-primary-button ks-crop-save-button" disabled={isSaving}>
                 {isSaving && <span className="ks-login-spinner" aria-hidden="true" />}
-                {isSaving ? t("loading") : t("saveEntry")}
+                {isSaving ? t("loading") : editingEntry ? t("saveChanges") : t("saveEntry")}
               </button>
             </form>
           </section>
         </div>
       )}
 
-      {toastVisible && <div className="ks-crop-toast" role="status" aria-live="polite">{t("entrySaved")} ✓</div>}
+      {voidTarget && (
+        <div className="ks-crop-modal-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setVoidTarget(null);
+        }}>
+          <section className="ks-entry-form ks-void-dialog" role="dialog" aria-modal="true" aria-labelledby="void-entry-title">
+            <h2 id="void-entry-title">{t("voidEntryQuestion")}</h2>
+            <label className="ks-crop-form-label">{t("voidReason")}
+              <textarea value={voidReason} onChange={(event) => setVoidReason(event.target.value)} rows="3" maxLength={1000} />
+            </label>
+            {actionError && <p className="ks-form-error" role="alert">{actionError}</p>}
+            <div className="ks-void-dialog-actions">
+              <button type="button" className="ks-secondary-button" onClick={() => setVoidTarget(null)}>{t("cancel")}</button>
+              <button type="button" className="ks-primary-button" onClick={handleVoidEntry}>{t("confirmVoid")}</button>
+            </div>
+          </section>
+        </div>
+      )}
 
-      {entries.length === 0 ? (
+      {toastVisible && (
+        <div className="ks-crop-toast" role="status" aria-live="polite">
+          <span>{t(toastMessageKey)}{toastMessageKey !== "voidedToast" ? " ✓" : ""}</span>
+          {voidToastEntryId && <button type="button" className="ks-toast-undo" onClick={() => handleRestoreEntry(voidToastEntryId, true)}>{t("undo")}</button>}
+        </div>
+      )}
+
+      {visibleEntries.length === 0 ? (
         <section className="ks-crop-empty-state" aria-labelledby="crop-empty-title">
           <div className="ks-crop-empty-icon" aria-hidden="true">
             <svg viewBox="0 0 64 64">
@@ -1418,6 +2066,7 @@ function CropLog({ today, entries, onAddEntry }) {
           </div>
           <h2 id="crop-empty-title">{t("firstCropEntry")}</h2>
           <p>{t("cropLogEmptyHelp")}</p>
+                    <p>{t("cropLogEmptyMessage")}</p>
           <button type="button" className="ks-primary-button ks-empty-add-button" onClick={() => openForm()}>＋ {t("addEntry")}</button>
           <div className="ks-crop-quick-add">
             <p>{t("chooseActivityType")}</p>
@@ -1432,12 +2081,12 @@ function CropLog({ today, entries, onAddEntry }) {
         </section>
       ) : (
         <section className="ks-crop-timeline" aria-label={t("cropLogTimeline")}>
-        {[...entries].sort((a, b) => b.date.localeCompare(a.date)).map((entry, index) => {
+        {[...visibleEntries].sort((a, b) => b.date.localeCompare(a.date)).map((entry, index) => {
           const [, month, day] = entry.date.split("-");
           const activityType = getCropActivityType(entry.title);
           const entryTitle = activityType ? t(activityType.key) : entry.title;
           return (
-            <article className={`ks-crop-timeline-entry${index === 0 ? " latest" : ""}`} key={entry.id}>
+            <article className={`ks-crop-timeline-entry${index === 0 ? " latest" : ""}${entry.is_void ? " voided" : ""}`} key={entry.id}>
               <div className="ks-crop-date-tile"><span>{new Intl.DateTimeFormat(localeFallbacks[language] || language, { month: "short" }).format(new Date(Number(entry.date.slice(0, 4)), Number(month) - 1, Number(day)))}</span><strong>{Number(day)}</strong></div>
               <span className="ks-crop-timeline-marker" aria-hidden="true" />
               <div className="ks-panel ks-crop-entry-card">
@@ -1448,6 +2097,21 @@ function CropLog({ today, entries, onAddEntry }) {
                 <h2>{t("day")} {entry.day}: {entryTitle}</h2>
                 <p className="ks-crop-entry-description">{getEntryText(entry, "description")}</p>
                 {entry.photoUrl && <img className="ks-crop-entry-photo" src={entry.photoUrl} alt={`${t("photoFor")} ${getEntryText(entry, "title", t)}`} loading="lazy" />}
+                {entry.is_void ? (
+                  <>
+                    <p className="ks-void-reason"><strong>{t("voidReason")}:</strong> {entry.void_reason || t("noVoidReason")}</p>
+                    <button type="button" className="ks-secondary-button ks-crop-action-button" onClick={() => handleRestoreEntry(entry.id)}>{t("restoreEntry")}</button>
+                  </>
+                ) : (
+                  <div className="ks-crop-entry-actions">
+                    <button type="button" className="ks-secondary-button ks-crop-action-button" onClick={() => openEditForm(entry)}>{t("editEntry")}</button>
+                    <button type="button" className="ks-secondary-button ks-crop-action-button" onClick={() => {
+                      setActionError("");
+                      setVoidReason("");
+                      setVoidTarget(entry);
+                    }}>{t("voidEntry")}</button>
+                  </div>
+                )}
               </div>
             </article>
           );
@@ -1657,7 +2321,9 @@ function Traceability({ batches, onAddBatch, farmerName }) {
       {downloadError && <p className="ks-form-error" role="alert">{downloadError}</p>}
 
       <section className="ks-batch-grid" aria-label={t("traceabilityBatches")}>
-        {batches.map((batch) => {
+        {batches.length === 0 ? (
+          <PageEmptyState title={t("batchesEmptyTitle")} description={t("batchesEmptyMessage")} action={t("createBatch")} onAction={() => setFormOpen(true)} />
+        ) : batches.map((batch) => {
           const traceUrl = `${window.location.origin}/trace/${encodeURIComponent(batch.id)}?batch=${encodeURIComponent(JSON.stringify(batch))}`;
           const batchCrop = batch.cropKey ? t(batch.cropKey) : batch.crop;
           const batchField = batch.fieldKey ? t(batch.fieldKey) : batch.field;
@@ -1695,17 +2361,50 @@ function TreatmentAdvice() {
   return <p className="ks-plant-treatment-placeholder">{t("treatmentAdvicePlaceholder")}</p>;
 }
 
-function PlantHealth({ today, photos, onAddPhoto }) {
+function PlantHealth({
+  today,
+  photos,
+  onAddPhoto,
+  crop,
+  ownerEmail,
+  weather,
+  schedule,
+  scheduleError,
+  onScheduleChange
+}) {
   const { language, t } = useLanguage();
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isUploadOpen, setIsUploadOpen] = useState(() => Boolean(location.state?.openPlantPhotoUpload));
+  const [isScheduleSettingsOpen, setIsScheduleSettingsOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedPhotoId, setSelectedPhotoId] = useState("");
-  const daysUntilPhoto = getDaysUntilPlantPhoto(today, photos);
+  const [scheduleDraft, setScheduleDraft] = useState(null);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [scheduleSaveError, setScheduleSaveError] = useState("");
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [isSpeakingTips, setIsSpeakingTips] = useState(false);
+  const [tipsSpeechError, setTipsSpeechError] = useState("");
+  const photoTipsUtteranceRef = useRef(null);
+  const activeScheduleDraft = scheduleDraft?.crop === crop ? scheduleDraft : null;
+  const scheduleMode = activeScheduleDraft?.mode || schedule?.mode || "auto";
+  const intervalDays = activeScheduleDraft?.intervalDays || String(schedule?.interval_days || 5);
   const sortedPhotos = [...photos].sort((a, b) => b.date.localeCompare(a.date));
   const selectedPhoto = photos.find((photo) => photo.id === selectedPhotoId);
+
+  useEffect(() => {
+    if (location.state?.openPlantPhotoUpload) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => () => {
+    photoTipsUtteranceRef.current = null;
+    window.speechSynthesis?.cancel();
+  }, []);
 
   function handlePhotoChange(event) {
     const file = event.target.files?.[0];
@@ -1742,12 +2441,17 @@ function PlantHealth({ today, photos, onAddPhoto }) {
     setIsAnalyzing(true);
     setUploadError("");
     try {
-      const analysis = await analyzePlantPhoto(selectedFile, t);
+      const analysis = await analyzePlantPhoto(selectedFile, t, { crop, weather });
+      if (analysis.schedule) onScheduleChange(analysis.schedule);
       const photo = {
         id: crypto.randomUUID(),
         date: formatInputDate(today),
         photoUrl: photoPreview,
-        analysis: { ...analysis, disclaimer: t("plantHealthDisclaimer") }
+        analysis: {
+          ...analysis,
+          schedule: undefined,
+          disclaimer: t("plantHealthDisclaimer")
+        }
       };
       onAddPhoto(photo);
       setSelectedPhotoId(photo.id);
@@ -1758,6 +2462,122 @@ function PlantHealth({ today, photos, onAddPhoto }) {
       setUploadError(error instanceof Error ? error.message : t("plantHealthAnalysisFailed"));
     } finally {
       setIsAnalyzing(false);
+    }
+  }
+
+  async function savePhotoSchedule(event) {
+    event.preventDefault();
+    setIsSavingSchedule(true);
+    setScheduleSaveError("");
+    const requestedInterval = Number(intervalDays);
+    try {
+      const updatedSchedule = await updatePhotoSchedule({
+        crop,
+        weather,
+        mode: scheduleMode,
+        intervalDays: requestedInterval,
+        t
+      });
+      onScheduleChange(updatedSchedule);
+      setScheduleDraft(null);
+      setIsScheduleSettingsOpen(false);
+    } catch (error) {
+      if (isOfflineRequestError(error)) {
+        const offlineSchedule = createOfflinePhotoSchedule(
+          schedule,
+          crop,
+          scheduleMode,
+          requestedInterval
+        );
+        try {
+          localStorage.setItem(
+            photoSchedulePendingKey(ownerEmail, crop),
+            JSON.stringify({ mode: scheduleMode, interval_days: requestedInterval })
+          );
+          onScheduleChange(offlineSchedule);
+          setScheduleSaveError(t("photoReminderOfflineSaved"));
+          setIsScheduleSettingsOpen(false);
+        } catch (storageError) {
+          console.error("Could not save the photo reminder offline.", storageError);
+          setScheduleSaveError(t("photoScheduleSaveFailed"));
+        }
+      } else {
+        setScheduleSaveError(error instanceof Error ? error.message : t("photoScheduleSaveFailed"));
+      }
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  }
+
+  async function enablePhotoNotifications() {
+    setNotificationMessage("");
+    if (!("Notification" in window)) {
+      setNotificationMessage(t("photoNotificationsUnsupported"));
+      return;
+    }
+    try {
+      const permission = await window.Notification.requestPermission();
+      if (permission === "granted") {
+        setNotificationMessage(t("photoNotificationsEnabled"));
+        showDuePhotoNotification(schedule, t);
+      } else {
+        setNotificationMessage(t("photoNotificationsDenied"));
+      }
+    } catch (error) {
+      console.error("Could not request photo reminder notifications.", error);
+      setNotificationMessage(t("photoNotificationsDenied"));
+    }
+  }
+
+  function listenToPhotoTips() {
+    if (isSpeakingTips) {
+      photoTipsUtteranceRef.current = null;
+      window.speechSynthesis?.cancel();
+      setIsSpeakingTips(false);
+      return;
+    }
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+      setTipsSpeechError(t("photoTipsSpeechUnavailable"));
+      return;
+    }
+
+    setTipsSpeechError("");
+    const speech = window.speechSynthesis;
+    const tipKeys = ["photoTipMorning", "photoTipClose", "photoTipSamePlant", "photoTipSteady"];
+    const utterance = new window.SpeechSynthesisUtterance(
+      tipKeys.map((key) => translate("mr", key)).join(" ")
+    );
+    utterance.lang = "mr-IN";
+    utterance.rate = 0.9;
+    const voice = speech.getVoices().find((item) => item.lang.toLowerCase().replaceAll("_", "-") === "mr-in")
+      || speech.getVoices().find((item) => item.lang.toLowerCase().replaceAll("_", "-").startsWith("mr-"));
+    if (voice) utterance.voice = voice;
+    utterance.onstart = () => {
+      if (photoTipsUtteranceRef.current === utterance) setIsSpeakingTips(true);
+    };
+    utterance.onend = () => {
+      if (photoTipsUtteranceRef.current !== utterance) return;
+      photoTipsUtteranceRef.current = null;
+      setIsSpeakingTips(false);
+    };
+    utterance.onerror = (event) => {
+      if (photoTipsUtteranceRef.current !== utterance) return;
+      photoTipsUtteranceRef.current = null;
+      setIsSpeakingTips(false);
+      if (event.error !== "canceled" && event.error !== "interrupted") {
+        setTipsSpeechError(t("photoTipsSpeechFailed"));
+      }
+    };
+    try {
+      speech.cancel();
+      speech.resume();
+      photoTipsUtteranceRef.current = utterance;
+      speech.speak(utterance);
+    } catch (error) {
+      console.error("Could not start spoken photo tips.", error);
+      photoTipsUtteranceRef.current = null;
+      setIsSpeakingTips(false);
+      setTipsSpeechError(t("photoTipsSpeechFailed"));
     }
   }
 
@@ -1775,19 +2595,116 @@ function PlantHealth({ today, photos, onAddPhoto }) {
         <div><h1>{t("plantHealth")}</h1><p>{t("fieldOneTomato")}</p></div>
       </div>
 
-      <section className="ks-panel ks-plant-due-card">
-        <div className="ks-plant-due-copy">
-          <span className="ks-stat-icon ks-icon-lime" aria-hidden="true">♧</span>
-          <div>
-            <p className="ks-eyebrow">{t("nextPhotoDue").toUpperCase()}</p>
-            <h2>{daysUntilPhoto === 0 ? t("photoDueNow") : t("photoDueIn").replace("{days}", daysUntilPhoto)}</h2>
-            <p>{t("photoCycleDescription")}</p>
-          </div>
-        </div>
+      <PhotoReminderCard schedule={schedule} error={scheduleSaveError || scheduleError} t={t}>
         <button type="button" className="ks-primary-button" onClick={() => setIsUploadOpen(true)}>
-          {t("takePhotoNow")}
+          {t("takePhoto")}
         </button>
+        <button
+          type="button"
+          className="ks-secondary-button"
+          onClick={() => setIsScheduleSettingsOpen(true)}
+        >
+          {t("photoReminderSettings")}
+        </button>
+      </PhotoReminderCard>
+
+      <section className="ks-panel ks-photo-tips" aria-labelledby="photo-tips-title">
+        <div className="ks-panel-heading">
+          <h2 id="photo-tips-title">{t("photoTipsTitle")}</h2>
+          <button
+            type="button"
+            className="ks-secondary-button"
+            onClick={listenToPhotoTips}
+            aria-pressed={isSpeakingTips}
+          >
+            {isSpeakingTips ? t("stopPhotoTips") : t("listenToPhotoTips")}
+          </button>
+        </div>
+        <ul>
+          {["photoTipMorning", "photoTipClose", "photoTipSamePlant", "photoTipSteady"].map((key) => (
+            <li key={key}>{t(key)}</li>
+          ))}
+        </ul>
+        {tipsSpeechError && <p className="ks-form-error" role="status">{tipsSpeechError}</p>}
       </section>
+
+      {isScheduleSettingsOpen && (
+        <div
+          className="ks-photo-settings-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsScheduleSettingsOpen(false);
+          }}
+        >
+          <section
+            className="ks-panel ks-photo-settings-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="photo-settings-title"
+          >
+            <div className="ks-panel-heading">
+              <h2 id="photo-settings-title">{t("photoReminderSettings")}</h2>
+              <button
+                type="button"
+                className="ks-close-button"
+                onClick={() => setIsScheduleSettingsOpen(false)}
+                aria-label={t("close")}
+              >×</button>
+            </div>
+            <form className="ks-photo-schedule-controls" onSubmit={savePhotoSchedule}>
+              <label>
+                {t("photoReminderMode")}
+                <select
+                  value={scheduleMode}
+                  onChange={(event) => setScheduleDraft({
+                    crop,
+                    mode: event.target.value,
+                    intervalDays
+                  })}
+                >
+                  <option value="auto">{t("photoReminderAuto")}</option>
+                  <option value="manual">{t("photoReminderManual")}</option>
+                </select>
+              </label>
+              {scheduleMode === "manual" && (
+                <label>
+                  {t("photoReminderInterval")}
+                  <select
+                    required
+                    value={intervalDays}
+                    onChange={(event) => setScheduleDraft({
+                      crop,
+                      mode: scheduleMode,
+                      intervalDays: event.target.value
+                    })}
+                  >
+                    {Array.from({ length: 14 }, (_, index) => String(index + 1)).map((days) => (
+                      <option key={days} value={days}>
+                        {days} {t("daysLabel")}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {scheduleSaveError && (
+                <p className="ks-form-error" role="alert">{scheduleSaveError}</p>
+              )}
+              <button type="submit" className="ks-primary-button" disabled={isSavingSchedule}>
+                {isSavingSchedule ? t("saving") : t("savePhotoReminder")}
+              </button>
+            </form>
+            <div className="ks-photo-notification-settings">
+              <button
+                type="button"
+                className="ks-secondary-button"
+                onClick={enablePhotoNotifications}
+              >
+                {t("enablePhotoNotifications")}
+              </button>
+              {notificationMessage && <p role="status">{notificationMessage}</p>}
+            </div>
+          </section>
+        </div>
+      )}
 
       {selectedPhoto && (
         <article className="ks-panel ks-plant-result">
@@ -1824,7 +2741,7 @@ function PlantHealth({ today, photos, onAddPhoto }) {
           <span className="ks-entry-count">{photos.length} {t("photos")}</span>
         </div>
         <div className="ks-plant-timeline-list">
-          {sortedPhotos.map((photo) => (
+          {sortedPhotos.length ? sortedPhotos.map((photo) => (
             <article className="ks-plant-timeline-entry" key={photo.id}>
               <button
                 type="button"
@@ -1844,7 +2761,9 @@ function PlantHealth({ today, photos, onAddPhoto }) {
                 <h3>{photo.analysis.uncertain ? t("uncertainAnalysisShort") : getPlantHealthLabel(photo.analysis.label, t)}</h3>
               </div>
             </article>
-          ))}
+          )) : (
+            <PageEmptyState title={t("plantPhotosEmptyTitle")} description={t("plantPhotosEmptyMessage")} action={t("takePhotoNow")} onAction={() => setIsUploadOpen(true)} />
+          )}
         </div>
       </section>
 
@@ -1923,6 +2842,7 @@ function PublicTracePage({ batches }) {
         <header className="ks-public-header">
           <span className="ks-brand-icon">B</span><span className="ks-public-brand">Bhoomitra</span>
           <span className="ks-public-verified"><span>✓</span>{t("verifiedByBhoomitra")}</span>
+          <HelpButton pageKey="helpPublicTrace" />
         </header>
         <article className="ks-public-card ks-public-origin">
           <p className="ks-eyebrow">{t("batchNumber").toUpperCase()} #{batch.batchNumber}</p>
@@ -1948,7 +2868,9 @@ function PublicTracePage({ batches }) {
                 </article>
               ))}
             </div>
-          ) : <p className="ks-public-empty">{t("noInputsRecorded")}</p>}
+          ) : (
+            <PageEmptyState title={t("noInputsRecorded")} description={t("publicInputsEmptyMessage")} action={t("backToBhoomitra")} to="/dashboard" />
+          )}
         </section>
         <footer className="ks-public-footer"><span className="ks-brand-icon">B</span><span>Bhoomitra</span><p>{t("traceFooter")}</p></footer>
       </div>

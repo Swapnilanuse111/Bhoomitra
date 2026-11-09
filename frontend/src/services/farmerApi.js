@@ -29,7 +29,7 @@ async function request(path, options = {}) {
   return parseResponse(response);
 }
 
-async function csrfHeaders() {
+export async function getCsrfHeaders() {
   const { csrfToken } = await request("/api/auth/csrf/");
   return { "X-CSRFToken": csrfToken };
 }
@@ -41,7 +41,7 @@ export function getCurrentUser() {
 export async function updateFarmerProfile(profile) {
   return request("/api/auth/profile/", {
     method: "PUT",
-    headers: await csrfHeaders(),
+    headers: await getCsrfHeaders(),
     body: JSON.stringify(profile)
   });
 }
@@ -49,7 +49,7 @@ export async function updateFarmerProfile(profile) {
 export async function changeFarmerPassword({ currentPassword, newPassword, confirmPassword }) {
   return request("/api/auth/password/", {
     method: "POST",
-    headers: await csrfHeaders(),
+    headers: await getCsrfHeaders(),
     body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
   });
 }
@@ -57,7 +57,7 @@ export async function changeFarmerPassword({ currentPassword, newPassword, confi
 export async function registerFarmer({ name, email, password }) {
   return request("/api/auth/register/", {
     method: "POST",
-    headers: await csrfHeaders(),
+    headers: await getCsrfHeaders(),
     body: JSON.stringify({ name, email, password })
   });
 }
@@ -65,7 +65,7 @@ export async function registerFarmer({ name, email, password }) {
 export async function loginFarmer({ email, password, rememberMe }) {
   return request("/api/auth/login/", {
     method: "POST",
-    headers: await csrfHeaders(),
+    headers: await getCsrfHeaders(),
     body: JSON.stringify({ email, password, rememberMe })
   });
 }
@@ -73,18 +73,42 @@ export async function loginFarmer({ email, password, rememberMe }) {
 export async function logoutFarmer() {
   return request("/api/auth/logout/", {
     method: "POST",
-    headers: await csrfHeaders()
+    headers: await getCsrfHeaders()
   });
 }
 
-export function getCropLog() {
-  return request("/api/crop-log/");
+export function getCropLog({ includeVoid = false } = {}) {
+  return request(`/api/crop-log/${includeVoid ? "?include_void=1" : ""}`);
 }
 
 export async function createCropLogEntry(entry) {
   return request("/api/crop-log/", {
     method: "POST",
-    headers: await csrfHeaders(),
+    headers: await getCsrfHeaders(),
     body: JSON.stringify(entry)
+  });
+}
+
+export async function updateCropLogEntry(id, entry) {
+  return request(`/api/crop-log/${id}/`, {
+    method: "PATCH",
+    headers: await getCsrfHeaders(),
+    body: JSON.stringify(entry)
+  });
+}
+
+export async function voidCropLogEntry(id, reason = "") {
+  return request(`/api/crop-log/${id}/void/`, {
+    method: "POST",
+    headers: await getCsrfHeaders(),
+    body: JSON.stringify({ reason })
+  });
+}
+
+export async function restoreCropLogEntry(id) {
+  return request(`/api/crop-log/${id}/restore/`, {
+    method: "POST",
+    headers: await getCsrfHeaders(),
+    body: JSON.stringify({})
   });
 }

@@ -6,6 +6,7 @@ from PIL import Image, UnidentifiedImageError
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth import update_session_auth_hash
+from django.utils import timezone
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -20,8 +21,16 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import CropLogEntry, FarmerProfile
-from .serializers import CropLogEntrySerializer, FarmerProfileSerializer
+from .models import CropLogEntry, FarmerProfile, PhotoSchedule
+from .photo_schedule import photo_schedule_payload, recompute_photo_schedule
+from .serializers import (
+    CropLogEntrySerializer,
+    CropLogVoidSerializer,
+    FarmerProfileSerializer,
+    PhotoScheduleCropSerializer,
+    PhotoScheduleSettingsSerializer,
+    parse_photo_schedule_weather,
+)
 
 MAX_AVATAR_BYTES = 2 * 1024 * 1024
 AVATAR_MIME_FORMATS = {
@@ -297,7 +306,108 @@ class CropLogView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        return CropLogEntry.objects.filter(user=self.request.user)
+        entries = CropLogEntry.objects.filter(user=self.request.user)
+        if self.request.query_params.get('include_void') != '1':
+            entries = entries.filter(is_void=False)
+        return entries
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class CropLogDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = CropLogEntrySerializer
+    permission_classes = (IsAuthenticated,)
+    http_method_names = ('get', 'patch', 'head', 'options')
+
+    def get_queryset(self):
+        return CropLogEntry.objects.filter(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        entry = self.get_object()
+        if entry.is_void:
+            return Response(
+                {'error': 'Voided crop log entries cannot be edited. Restore the entry first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().update(request, *args, **kwargs)
+
+
+class CropLogVoidView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, pk):
+        try:
+            entry = CropLogEntry.objects.get(pk=pk, user=request.user)
+        except CropLogEntry.DoesNotExist:
+            return Response({'error': 'Crop log entry not found.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = CropLogVoidSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        entry.is_void = True
+        entry.void_reason = serializer.validated_data.get('reason', '')
+        entry.voided_at = timezone.now()
+        entry.save(update_fields=('is_void', 'void_reason', 'voided_at', 'updated_at'))
+        return Response(CropLogEntrySerializer(entry).data)
+
+
+class CropLogRestoreView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, pk):
+        try:
+            entry = CropLogEntry.objects.get(pk=pk, user=request.user)
+        except CropLogEntry.DoesNotExist:
+            return Response({'error': 'Crop log entry not found.'}, status=status.HTTP_404_NOT_FOUND)
+        entry.is_void = False
+        entry.void_reason = ''
+        entry.voided_at = None
+        entry.save(update_fields=('is_void', 'void_reason', 'voided_at', 'updated_at'))
+        return Response(CropLogEntrySerializer(entry).data)
+
+
+class PhotoScheduleView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        crop = self._crop(request.query_params.get('crop', 'pomegranate'))
+        if isinstance(crop, Response):
+            return crop
+        weather = parse_photo_schedule_weather(request.query_params)
+        schedule, _ = PhotoSchedule.objects.get_or_create(user=request.user, crop=crop)
+        if schedule.mode == PhotoSchedule.Mode.AUTO:
+            entries = CropLogEntry.objects.filter(user=request.user, is_void=False).order_by(
+                '-date', '-created_at'
+            )
+            recompute_photo_schedule(schedule, entries=entries, weather=weather)
+        return Response(photo_schedule_payload(schedule))
+
+    def patch(self, request):
+        serializer = PhotoScheduleSettingsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        crop_value = request.query_params.get('crop') or serializer.validated_data.get('crop', 'pomegranate')
+        crop = self._crop(crop_value)
+        if isinstance(crop, Response):
+            return crop
+
+        schedule, _ = PhotoSchedule.objects.get_or_create(user=request.user, crop=crop)
+        values = serializer.validated_data
+        if 'interval_days' in values:
+            schedule.interval_days = values['interval_days']
+        if 'mode' in values:
+            schedule.mode = values['mode']
+        elif 'interval_days' in values:
+            schedule.mode = PhotoSchedule.Mode.MANUAL
+
+        weather = parse_photo_schedule_weather(request.query_params)
+        entries = CropLogEntry.objects.filter(user=request.user, is_void=False).order_by(
+            '-date', '-created_at'
+        )
+        recompute_photo_schedule(schedule, entries=entries, weather=weather)
+        return Response(photo_schedule_payload(schedule))
+
+    @staticmethod
+    def _crop(value):
+        serializer = PhotoScheduleCropSerializer(data={'crop': value})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return serializer.validated_data['crop'].lower()

@@ -1,12 +1,16 @@
 import base64
 from io import BytesIO
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from PIL import Image
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 
-from .models import CropLogEntry, FarmerProfile
+from .models import CropLogEntry, FarmerProfile, PhotoSchedule
+from .photo_schedule import calculate_photo_interval
 
 
 class FarmerApiTests(TestCase):
@@ -235,3 +239,231 @@ class FarmerApiTests(TestCase):
         )
         self.client.force_authenticate(user=second_user)
         self.assertEqual(self.client.get('/api/crop-log/').data, [])
+
+    def test_crop_log_can_be_edited_voided_and_restored(self):
+        user = get_user_model().objects.create_user(
+            username='crop-edit@example.com',
+            email='crop-edit@example.com',
+            password='SafePassword!2026',
+        )
+        self.client.force_authenticate(user=user)
+        created = self.client.post(
+            '/api/crop-log/',
+            {
+                'date': '2026-10-21',
+                'day': 1,
+                'title': 'Field inspection',
+                'description': 'Checked the field.',
+            },
+            format='json',
+        )
+        entry_url = f"/api/crop-log/{created.data['id']}/"
+
+        edited = self.client.patch(
+            entry_url,
+            {'description': 'Checked the north field.'},
+            format='json',
+        )
+        self.assertEqual(edited.status_code, 200)
+        self.assertEqual(edited.data['description'], 'Checked the north field.')
+        self.assertFalse(edited.data['is_void'])
+
+        voided = self.client.post(
+            f"{entry_url}void/",
+            {'reason': 'Duplicate entry'},
+            format='json',
+        )
+        self.assertEqual(voided.status_code, 200)
+        self.assertTrue(voided.data['is_void'])
+        self.assertEqual(voided.data['void_reason'], 'Duplicate entry')
+        self.assertIsNotNone(voided.data['voided_at'])
+        self.assertEqual(self.client.get('/api/crop-log/').data, [])
+        self.assertEqual(len(self.client.get('/api/crop-log/?include_void=1').data), 1)
+
+        restored = self.client.post(f"{entry_url}restore/", {}, format='json')
+        self.assertEqual(restored.status_code, 200)
+        self.assertFalse(restored.data['is_void'])
+        self.assertEqual(restored.data['void_reason'], '')
+        self.assertEqual(len(self.client.get('/api/crop-log/').data), 1)
+
+    def test_crop_log_edit_is_validated_and_user_scoped(self):
+        owner = get_user_model().objects.create_user(
+            username='crop-owner@example.com',
+            email='crop-owner@example.com',
+            password='SafePassword!2026',
+        )
+        entry = CropLogEntry.objects.create(
+            user=owner,
+            date='2026-10-21',
+            day=1,
+            title='Field inspection',
+            description='Checked the field.',
+        )
+        other_user = get_user_model().objects.create_user(
+            username='crop-other@example.com',
+            email='crop-other@example.com',
+            password='SafePassword!2026',
+        )
+        self.client.force_authenticate(user=other_user)
+
+        self.assertEqual(self.client.patch(f'/api/crop-log/{entry.id}/', {'title': 'Changed'}).status_code, 404)
+
+        self.client.force_authenticate(user=owner)
+        empty_update = self.client.patch(f'/api/crop-log/{entry.id}/', {}, format='json')
+        self.assertEqual(empty_update.status_code, 400)
+        self.assertIn('Provide at least one field', str(empty_update.data))
+
+
+class PhotoScheduleRuleTests(SimpleTestCase):
+    def test_normal_weather_uses_five_days(self):
+        self.assertEqual(
+            calculate_photo_interval(mode='auto', interval_days=5),
+            (5, 'normal'),
+        )
+
+    def test_rainy_cloudy_and_humid_forecasts_shorten_the_interval(self):
+        self.assertEqual(
+            calculate_photo_interval(mode='auto', interval_days=5, weather={'weather_codes': [61]}),
+            (2, 'rainy'),
+        )
+        self.assertEqual(
+            calculate_photo_interval(mode='auto', interval_days=5, weather={'weather_codes': [3]}),
+            (3, 'cloudy'),
+        )
+        self.assertEqual(
+            calculate_photo_interval(mode='auto', interval_days=5, weather={'humidity': 85}),
+            (3, 'humid'),
+        )
+
+    def test_flowering_and_fruiting_crop_log_stages_use_shorter_intervals(self):
+        flowering = SimpleNamespace(title='Flowering started', description='')
+        fruiting = SimpleNamespace(title='Field note', description='Fruit set is visible')
+        self.assertEqual(
+            calculate_photo_interval(mode='auto', interval_days=5, entries=[flowering]),
+            (4, 'flowering'),
+        )
+        self.assertEqual(
+            calculate_photo_interval(mode='auto', interval_days=5, entries=[fruiting]),
+            (3, 'fruiting'),
+        )
+
+    def test_high_confidence_symptoms_take_priority_and_manual_mode_is_respected(self):
+        self.assertEqual(
+            calculate_photo_interval(
+                mode='auto',
+                interval_days=5,
+                disease_result=True,
+                weather={'weather_codes': [61]},
+            ),
+            (3, 'symptom'),
+        )
+        self.assertEqual(
+            calculate_photo_interval(
+                mode='manual',
+                interval_days=11,
+                disease_result=True,
+                weather={'weather_codes': [61]},
+            ),
+            (11, 'manual'),
+        )
+
+
+class PhotoScheduleApiTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='schedule@example.com',
+            email='schedule@example.com',
+            password='SafePassword!2026',
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_schedule_requires_authentication_and_is_crop_scoped(self):
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get('/api/plant-health/schedule/').status_code, 403)
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get('/api/plant-health/schedule/?crop=tomato')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['interval_days'], 5)
+        self.assertEqual(response.data['status'], 'ok')
+        self.assertEqual(response.data['reason'], 'normal')
+        self.assertEqual(PhotoSchedule.objects.filter(user=self.user).count(), 1)
+        other_user = get_user_model().objects.create_user(
+            username='another-schedule@example.com',
+            email='another-schedule@example.com',
+            password='SafePassword!2026',
+        )
+        PhotoSchedule.objects.create(user=other_user, crop='tomato')
+        self.assertEqual(PhotoSchedule.objects.filter(crop='tomato').count(), 2)
+
+    def test_patch_validates_range_and_persists_manual_setting(self):
+        invalid = self.client.patch(
+            '/api/plant-health/schedule/?crop=tomato',
+            {'interval_days': 15, 'mode': 'manual'},
+            format='json',
+        )
+        self.assertEqual(invalid.status_code, 400)
+        self.assertIn('interval_days', invalid.data)
+
+        saved = self.client.patch(
+            '/api/plant-health/schedule/?crop=tomato',
+            {'interval_days': 8},
+            format='json',
+        )
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.data['interval_days'], 8)
+        self.assertEqual(saved.data['mode'], 'manual')
+        self.assertEqual(saved.data['reason'], 'manual')
+
+    def test_weather_query_updates_auto_interval(self):
+        response = self.client.get(
+            '/api/plant-health/schedule/?crop=tomato&weather_codes=61,3&humidity=90'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['interval_days'], 2)
+        self.assertEqual(response.data['reason'], 'rainy')
+
+    def test_invalid_weather_context_returns_field_errors(self):
+        response = self.client.get(
+            '/api/plant-health/schedule/?crop=tomato&humidity=101'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('humidity', response.data)
+
+    def test_analysis_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post('/api/plant-health/analyze/', {}, format='multipart')
+        self.assertEqual(response.status_code, 403)
+
+    @patch('plant_disease.views.predict_disease')
+    def test_successful_analysis_updates_last_photo_and_next_due(self, predict):
+        predict.return_value = {
+            'label': 'diseased',
+            'confidence': 0.92,
+            'uncertain': False,
+            'scores': {'diseased': 0.92, 'healthy': 0.08},
+        }
+        image_buffer = BytesIO()
+        Image.new('RGB', (4, 4), color='green').save(image_buffer, format='PNG')
+        image = SimpleUploadedFile(
+            'plant.png',
+            image_buffer.getvalue(),
+            content_type='image/png',
+        )
+
+        response = self.client.post(
+            '/api/plant-health/analyze/',
+            {'image': image, 'crop': 'tomato', 'weather_codes': '61'},
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['schedule']['reason'], 'symptom')
+        self.assertEqual(response.data['schedule']['interval_days'], 3)
+        schedule = PhotoSchedule.objects.get(user=self.user, crop='tomato')
+        self.assertIsNotNone(schedule.last_photo_at)
+        self.assertEqual(
+            (schedule.next_due_at - schedule.last_photo_at).days,
+            3,
+        )

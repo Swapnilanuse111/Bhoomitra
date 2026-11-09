@@ -1,10 +1,12 @@
 from PIL import Image, UnidentifiedImageError
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from farmers.photo_schedule import photo_schedule_payload, record_photo_analysis
+from farmers.serializers import PhotoScheduleCropSerializer, parse_photo_schedule_weather
 from .predict import predict_disease
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
@@ -17,9 +19,15 @@ DISCLAIMER = (
 
 class PlantHealthAnalyzeView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [AllowAny]  # फक्त local demo साठी
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        crop_serializer = PhotoScheduleCropSerializer(
+            data={'crop': request.data.get('crop', 'pomegranate')}
+        )
+        if not crop_serializer.is_valid():
+            return Response(crop_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        weather = parse_photo_schedule_weather(request.data)
         uploaded_file = request.FILES.get("image")
 
         if uploaded_file is None:
@@ -53,4 +61,11 @@ class PlantHealthAnalyzeView(APIView):
             )
 
         result["disclaimer"] = DISCLAIMER
+        schedule = record_photo_analysis(
+            user=request.user,
+            crop=crop_serializer.validated_data['crop'].lower(),
+            analysis=result,
+            weather=weather,
+        )
+        result['schedule'] = photo_schedule_payload(schedule)
         return Response(result, status=status.HTTP_200_OK)
