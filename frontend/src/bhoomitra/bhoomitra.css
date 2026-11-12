@@ -6077,6 +6077,10 @@
     padding: 1rem;
   }
 
+  .ks-photo-reminder-copy {
+    flex-basis: auto;
+  }
+
   .ks-photo-reminder-actions {
     width: 100%;
     display: grid;
@@ -6123,5 +6127,562 @@
   .ks-photo-tips .ks-panel-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+.ks-login-page {
+  min-height: 100vh;
+  min-height: 100svh;
+  grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+  background: #f7f8f5;
+}
+
+.ks-login-page .ks-login-art {
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: clamp(28px, 4.5vw, 72px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 36px;
+  background:
+    linear-gradient(180deg, rgba(12, 39, 27, 0.42) 0%, rgba(12, 39, 27, 0.12) 42%, rgba(10, 30, 21, 0.78) 100%),
+    linear-gradient(100deg, rgba(17, 58, 38, 0.78), rgba(17, 58, 38, 0.12)),
+    url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=85") center / cover;
+  color: #fff;
+}
+
+.ks-login-hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.ks-login-hero-brand img {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 13px;
+  box-shadow: 0 4px 16px rgba(8, 24, 16, 0.2);
+}
+
+.ks-login-hero-body {
+  width: min(100%, 800px);
+  margin: auto 0;
+  display: grid;
+  gap: clamp(24px, 3.5vw, 44px);
+}
+
+.ks-login-page .ks-login-art-copy {
+  max-width: 690px;
+}
+
+.ks-login-page .ks-login-art .ks-eyebrow {
+  color: #e2edc9;
+  font-size: 13px !important;
+  font-weight: 700;
+  letter-spacing: 0.12em !important;
+}
+
+.ks-login-page .ks-login-art h1 {
+  max-width: 700px;
+  margin: 14px 0 16px;
+  color: #fff;
+  font-size: clamp(36px, 4.1vw, 62px);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.24;
+  text-wrap: pretty;
+}
+
+.ks-login-page .ks-login-art-copy p {
+  max-width: 560px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 18px !important;
+  line-height: 1.7 !important;
+}
+
+.ks-login-features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ks-login-feature {
+  min-width: 0;
+  min-height: 142px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(7, 27, 17, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.ks-login-feature:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.ks-login-feature-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(235, 244, 215, 0.36);
+  border-radius: 12px;
+  background: rgba(224, 239, 195, 0.18);
+  color: #e2edc9;
+}
+
+.ks-login-feature-icon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.ks-login-feature-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.ks-login-feature-copy strong {
+  color: #fff;
+  font-size: 15px !important;
+  font-weight: 700;
+  line-height: 1.4 !important;
+}
+
+.ks-login-feature-copy > span {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.ks-login-page .ks-art-caption {
+  position: static;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px !important;
+  letter-spacing: 0.02em !important;
+}
+
+.ks-login-page .ks-login-card {
+  width: min(calc(100% - 64px), 510px);
+  margin: auto;
+  padding: clamp(28px, 3vw, 46px);
+  border: 1px solid #e8eee6;
+  border-radius: 26px;
+  background:
+    radial-gradient(ellipse at 100% 0, rgba(220, 232, 201, 0.24), transparent 34%),
+    #fff;
+  box-shadow: 0 24px 70px rgba(29, 59, 41, 0.12);
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.ks-login-page .ks-login-card:hover {
+  transform: none;
+  border-color: #dce7d9;
+  box-shadow: 0 28px 76px rgba(29, 59, 41, 0.15);
+}
+
+.ks-login-header {
+  margin-bottom: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ks-login-page .ks-login-brand {
+  min-width: max-content;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #204a35;
+  font-size: 22px !important;
+  font-weight: 700;
+  letter-spacing: -0.4px !important;
+}
+
+.ks-login-brand img {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.ks-login-page .ks-login-language {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ks-login-page .ks-login-language .ks-language-select {
+  min-height: 42px;
+  padding: 4px 10px;
+  border-color: #e2e9df;
+  border-radius: 12px;
+  background: #f8faf6;
+}
+
+.ks-login-page .ks-login-language .ks-language-select select {
+  min-height: 32px;
+  max-width: 112px;
+  color: #294d37;
+  font-size: 14px !important;
+}
+
+.ks-login-page .ks-login-language .ks-help-button {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  flex: 0 0 42px;
+  border: 1px solid #e2e9df;
+  border-radius: 50%;
+  background: #fff;
+  color: #315b40;
+}
+
+.ks-login-page .ks-back-link {
+  margin: 0 0 8px;
+  color: #728175;
+  font-size: 12px !important;
+  font-weight: 600;
+  letter-spacing: 0.04em !important;
+}
+
+.ks-login-page .ks-login-card > .ks-eyebrow {
+  margin: 0 0 5px;
+  color: #52705c;
+  font-size: 15px !important;
+  font-weight: 600;
+}
+
+.ks-login-page .ks-login-card h2 {
+  color: #204a35;
+  font-size: 30px !important;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ks-login-page .ks-login-description {
+  margin: 7px 0 25px;
+  color: #637168;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+}
+
+.ks-login-page .ks-login-form {
+  gap: 17px;
+}
+
+.ks-login-page .ks-login-form label {
+  color: #405649;
+  font-size: 14px !important;
+  font-weight: 600;
+}
+
+.ks-login-input-wrap {
+  position: relative;
+}
+
+.ks-login-input-wrap > svg,
+.ks-login-password-icon {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 15px;
+  width: 19px;
+  height: 19px;
+  transform: translateY(-50%);
+  fill: none;
+  stroke: #718378;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  pointer-events: none;
+}
+
+.ks-login-page .ks-login-input-wrap > input,
+.ks-login-page .ks-password-input > input {
+  height: 52px;
+  min-height: 52px;
+  padding-left: 46px;
+  border-color: #dce5dc;
+  border-radius: 13px;
+  background: #fbfcfa;
+  color: #253b2d;
+  font-size: 15px !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.ks-login-page .ks-password-input > input {
+  padding-right: 52px;
+}
+
+.ks-login-page .ks-login-input-wrap > input:focus,
+.ks-login-page .ks-password-input > input:focus {
+  border-color: #4a8059;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(55, 107, 73, 0.12);
+}
+
+.ks-login-page .ks-password-input > .ks-login-password-icon {
+  left: 15px;
+}
+
+.ks-login-page .ks-password-toggle {
+  right: 9px;
+  color: #63776a;
+}
+
+.ks-login-page .ks-login-options {
+  margin-top: 0;
+}
+
+.ks-login-page .ks-login-form .ks-remember-option {
+  color: #526459;
+  font-size: 14px !important;
+}
+
+.ks-login-page .ks-forgot-password {
+  color: #286040;
+  font-size: 14px !important;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.ks-login-page .ks-forgot-password:hover,
+.ks-login-page .ks-auth-switch button:hover {
+  color: #183c29;
+  text-decoration: underline;
+}
+
+.ks-login-page .ks-login-form .ks-primary-button {
+  min-height: 54px;
+  margin-top: 2px;
+  border-radius: 13px;
+  background: #245c3e;
+  box-shadow: 0 9px 22px rgba(36, 92, 62, 0.18);
+  font-size: 16px !important;
+  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.ks-login-page .ks-login-form .ks-primary-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: #1d4e34;
+  box-shadow: 0 12px 26px rgba(36, 92, 62, 0.24);
+}
+
+.ks-login-page .ks-login-form .ks-primary-button:disabled {
+  transform: none;
+  opacity: 0.78;
+}
+
+.ks-login-page .ks-auth-switch {
+  margin: 22px 0 0;
+  color: #64736a;
+  font-size: 14px !important;
+  text-align: center;
+}
+
+.ks-login-page .ks-auth-switch button {
+  margin-left: 5px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #245c3e;
+  font: inherit;
+  font-size: inherit !important;
+  font-weight: 700;
+  cursor: pointer;
+  text-underline-offset: 3px;
+}
+
+.ks-login-page .ks-form-error,
+.ks-login-page .ks-login-notice {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px !important;
+}
+
+.ks-login-page .ks-form-error {
+  border: 1px solid #f1d2cb;
+  background: #fff6f3;
+  color: #9c3d31;
+}
+
+.ks-login-page .ks-login-notice {
+  border: 1px solid #e2e9df;
+  background: #f5f8f2;
+  color: #405c47;
+}
+
+@media (max-width: 980px) {
+  .ks-login-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ks-login-page .ks-login-art {
+    min-height: auto;
+    padding: 30px clamp(24px, 6vw, 64px);
+    gap: 28px;
+  }
+
+  .ks-login-hero-body {
+    margin: 10px auto;
+  }
+
+  .ks-login-page .ks-login-card {
+    width: min(calc(100% - 40px), 540px);
+    margin: 26px auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .ks-login-page .ks-login-art {
+    padding: 24px 20px;
+    gap: 24px;
+    background-position: center;
+  }
+
+  .ks-login-hero-brand {
+    font-size: 20px;
+  }
+
+  .ks-login-hero-brand img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .ks-login-hero-body {
+    width: 100%;
+    margin: 4px auto;
+    gap: 22px;
+  }
+
+  .ks-login-page .ks-login-art h1 {
+    margin: 10px 0 12px;
+    font-size: clamp(33px, 9.5vw, 46px);
+    line-height: 1.28;
+  }
+
+  .ks-login-page .ks-login-art-copy p {
+    font-size: 16px !important;
+  }
+
+  .ks-login-features {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .ks-login-feature {
+    min-height: 0;
+    padding: 12px 14px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    border-radius: 14px;
+  }
+
+  .ks-login-feature-copy {
+    gap: 2px;
+  }
+
+  .ks-login-feature-copy strong {
+    font-size: 14px !important;
+  }
+
+  .ks-login-feature-copy > span {
+    font-size: 13px !important;
+  }
+
+  .ks-login-page .ks-art-caption {
+    font-size: 12px !important;
+  }
+
+  .ks-login-page .ks-login-card {
+    width: calc(100% - 28px);
+    margin: 14px auto 28px;
+    padding: 22px 20px 24px;
+    border-radius: 22px;
+  }
+
+  .ks-login-header {
+    margin-bottom: 27px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .ks-login-page .ks-login-brand {
+    font-size: 20px !important;
+  }
+
+  .ks-login-page .ks-login-language {
+    gap: 6px;
+  }
+
+  .ks-login-page .ks-login-language .ks-language-select {
+    min-height: 40px;
+    padding: 3px 8px;
+  }
+
+  .ks-login-page .ks-login-language .ks-help-button {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    flex-basis: 40px;
+  }
+
+  .ks-login-page .ks-login-card h2 {
+    font-size: 27px !important;
+  }
+
+  .ks-login-page .ks-login-description {
+    margin-bottom: 20px;
+  }
+
+  .ks-login-page .ks-login-form {
+    gap: 15px;
+  }
+
+  .ks-login-page .ks-login-options {
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-login-page *,
+  .ks-login-page *::before,
+  .ks-login-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

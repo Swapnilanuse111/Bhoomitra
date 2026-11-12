@@ -13,6 +13,14 @@ from .models import CropLogEntry, FarmerProfile, PhotoSchedule
 from .photo_schedule import calculate_photo_interval
 
 
+class ProjectRootTests(SimpleTestCase):
+    def test_api_root_returns_service_status(self):
+        response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'name': 'Bhoomitra API', 'status': 'ok'})
+
+
 class FarmerApiTests(TestCase):
     def setUp(self):
         self.client = APIClient(enforce_csrf_checks=True)

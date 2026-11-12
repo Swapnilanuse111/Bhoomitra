@@ -195,6 +195,25 @@ function readStored(key, fallback) {
   }
 }
 
+function encodeSharedBatch(batch) {
+  const bytes = new TextEncoder().encode(JSON.stringify(batch));
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function decodeSharedBatch(value) {
+  if (value.startsWith("{")) return JSON.parse(value);
+
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+  const bytes = Uint8Array.from(atob(paddedBase64), (character) => character.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
 function formatLogDate(date, language = "en") {
   const [year, month, day] = date.split("-").map(Number);
   const value = new Date(year, month - 1, day);
@@ -854,7 +873,7 @@ function BhoomitraApp() {
             <Route path="dashboard" element={<Dashboard today={today} user={user} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={Math.max(0, activePhotoSchedule?.days_left ?? getDaysUntilPlantPhoto(today, plantPhotos))} photoSchedule={activePhotoSchedule} photoScheduleError={plantPhotoScheduleError} firstCropEntryDone={firstCropEntryDone || entries.some((entry) => !entry.is_void)} firstCropTaskActive={firstCropTaskActive} plantPhotoDone={plantPhotoDone || plantPhotos.length > 0} advisoryViewed={advisoryViewed} />} />
             <Route path="crop-log" element={<CropLog today={today} entries={entries} onAddEntry={addEntry} onUpdateEntry={editCropLogEntry} onVoidEntry={voidCropLogEntryWithQueue} onRestoreEntry={restoreCropLogEntryWithQueue} onLoadEntries={loadCropLog} syncError={cropLogSyncError} />} />
             <Route path="advisory" element={<Advisory feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} />} />
-            <Route path="plant-health" element={<PlantHealth today={today} photos={plantPhotos} onAddPhoto={addPlantPhoto} crop={selectedCrop} ownerEmail={user.email} weather={photoWeather} schedule={activePhotoSchedule} scheduleError={plantPhotoScheduleError} onScheduleChange={handlePhotoScheduleChange} />} />
+            <Route path="plant-health" element={<PlantHealth today={today} photos={plantPhotos} onAddPhoto={addPlantPhoto} crop={selectedCrop} ownerEmail={user?.email || ""} weather={photoWeather} schedule={activePhotoSchedule} scheduleError={plantPhotoScheduleError} onScheduleChange={handlePhotoScheduleChange} />} />
             <Route path="traceability" element={<Traceability batches={batches} onAddBatch={addBatch} farmerName={user?.name || ""} />} />
             <Route path="account-settings" element={<AccountSettings user={user} onUserUpdated={setUser} onSignOut={signOut} onShowTutorial={() => setShowOnboardingAgain(true)} language={language} setLanguage={setLanguage} t={(key) => translate(language, key)} />} />
             <Route path="*" element={<Dashboard today={today} user={user} entries={entries} feedback={feedback} onFeedback={saveFeedback} weatherState={weatherState} weatherLocation={weatherLocation} onRequestLocation={requestWeatherLocation} onSelectLocation={selectWeatherLocation} daysUntilPlantPhoto={Math.max(0, activePhotoSchedule?.days_left ?? getDaysUntilPlantPhoto(today, plantPhotos))} photoSchedule={activePhotoSchedule} photoScheduleError={plantPhotoScheduleError} firstCropEntryDone={firstCropEntryDone || entries.some((entry) => !entry.is_void)} firstCropTaskActive={firstCropTaskActive} plantPhotoDone={plantPhotoDone || plantPhotos.length > 0} advisoryViewed={advisoryViewed} />} />
@@ -1030,17 +1049,60 @@ function LoginPage({ onAuthenticated, initialName = "" }) {
   return (
     <main className="ks-login-page">
       <div className="ks-login-art">
-        <div className="ks-login-art-copy">
-          <span className="ks-eyebrow">{t("tagline").toUpperCase()}</span>
-          <h1>{t("loginHeadline")}</h1>
-          <p>{t("loginSubheading")}</p>
+        <div className="ks-login-hero-brand">
+          <img src="/bhoomitra.svg" alt="" />
+          <span>Bhoomitra</span>
         </div>
-        <span className="ks-art-caption">Bhoomitra · {t("tagline")}</span>
+        <div className="ks-login-hero-body">
+          <div className="ks-login-art-copy">
+            <span className="ks-eyebrow">{t("loginHeroEyebrow")}</span>
+            <h1>{t("loginHeroHeadline")}</h1>
+            <p>{t("loginHeroSubheading")}</p>
+          </div>
+          <div className="ks-login-features">
+            {[
+              { icon: "field", title: "loginFeatureFarmTitle", description: "loginFeatureFarmDescription" },
+              { icon: "health", title: "loginFeatureHealthTitle", description: "loginFeatureHealthDescription" },
+              { icon: "notes", title: "loginFeatureNotesTitle", description: "loginFeatureNotesDescription" }
+            ].map((feature) => (
+              <article className="ks-login-feature" key={feature.icon}>
+                <span className="ks-login-feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    {feature.icon === "field" ? (
+                      <>
+                        <path d="M12 20v-8" />
+                        <path d="M12 13c-4.5 0-7-2.5-7-7 4.5 0 7 2.5 7 7Z" />
+                        <path d="M12 16c0-4 2.2-6 7-6 0 4.5-2.5 6-7 6Z" />
+                      </>
+                    ) : feature.icon === "health" ? (
+                      <>
+                        <path d="M12 3.5 19 6v5.5c0 4.2-2.8 7.3-7 9-4.2-1.7-7-4.8-7-9V6l7-2.5Z" />
+                        <path d="m9 12 2 2 4-4" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M7 4.5h8l3 3V20H7z" />
+                        <path d="M15 4.5v4h3M10 12h5M10 15.5h5" />
+                      </>
+                    )}
+                  </svg>
+                </span>
+                <span className="ks-login-feature-copy">
+                  <strong>{t(feature.title)}</strong>
+                  <span>{t(feature.description)}</span>
+                </span>
+              </article>
+            ))}
+          </div>
+        </div>
+        <span className="ks-art-caption">{t("loginHeroFooter")}</span>
       </div>
       <section className="ks-login-card">
-        <div className="ks-login-language"><LanguageSelect language={language} onChange={setLanguage} t={t} /><HelpButton pageKey="helpLogin" /></div>
-        <span className="ks-back-link">{t("workspace").toUpperCase()}</span>
-        <div className="ks-brand ks-login-brand"><span className="ks-brand-icon">B</span>Bhoomitra</div>
+        <div className="ks-login-header">
+          <div className="ks-login-brand"><img src="/bhoomitra.svg" alt="" /><span>Bhoomitra</span></div>
+          <div className="ks-login-language"><LanguageSelect language={language} onChange={setLanguage} t={t} /><HelpButton pageKey="helpLogin" /></div>
+        </div>
+        <span className="ks-back-link">{t("workspace")}</span>
         <p className="ks-eyebrow">{t("welcomeFarmer")}</p>
         <h2>{isRegistering ? t("createAccount") : t("signIn")}</h2>
         <p className="ks-login-description">
@@ -1064,20 +1126,30 @@ function LoginPage({ onAuthenticated, initialName = "" }) {
           )}
           <div className="ks-login-field">
             <label htmlFor="farmer-email">{t("emailAddress")}</label>
-            <input
-              id="farmer-email"
-              name="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder={t("enterEmail")}
-              autoComplete="email"
-              required
-            />
+            <div className="ks-login-input-wrap">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+                <path d="m4.5 7 7.5 6 7.5-6" />
+              </svg>
+              <input
+                id="farmer-email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder={t("enterEmail")}
+                autoComplete="email"
+                required
+              />
+            </div>
           </div>
           <div className="ks-login-field">
             <label htmlFor="farmer-password">{t("password")}</label>
             <div className="ks-password-input">
+              <svg className="ks-login-password-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4.5" y="10" width="15" height="11" rx="2.5" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14.5v2" />
+              </svg>
               <input
                 id="farmer-password"
                 name="password"
@@ -1144,7 +1216,7 @@ function LoginPage({ onAuthenticated, initialName = "" }) {
           )}
           {formError && <p className="ks-form-error" role="alert">{formError}</p>}
           {authNotice && <p className="ks-login-notice" role="status">{authNotice}</p>}
-          <button type="submit" className="ks-primary-button" disabled={isSubmitting}>
+          <button type="submit" className="ks-primary-button" disabled={isSubmitting} aria-busy={isSubmitting}>
             {isSubmitting && <span className="ks-login-spinner" aria-hidden="true" />}
             {isSubmitting ? t("loading") : isRegistering ? t("createAccount") : t("signIn")}
           </button>
@@ -2324,7 +2396,7 @@ function Traceability({ batches, onAddBatch, farmerName }) {
         {batches.length === 0 ? (
           <PageEmptyState title={t("batchesEmptyTitle")} description={t("batchesEmptyMessage")} action={t("createBatch")} onAction={() => setFormOpen(true)} />
         ) : batches.map((batch) => {
-          const traceUrl = `${window.location.origin}/trace/${encodeURIComponent(batch.id)}?batch=${encodeURIComponent(JSON.stringify(batch))}`;
+          const traceUrl = `${window.location.origin}/trace/${encodeURIComponent(batch.id)}?batch=${encodeSharedBatch(batch)}`;
           const batchCrop = batch.cropKey ? t(batch.cropKey) : batch.crop;
           const batchField = batch.fieldKey ? t(batch.fieldKey) : batch.field;
           return (
@@ -2816,7 +2888,7 @@ function PublicTracePage({ batches }) {
   let batch;
   if (sharedBatch) {
     try {
-      const parsedBatch = JSON.parse(sharedBatch);
+      const parsedBatch = decodeSharedBatch(sharedBatch);
       if (parsedBatch.id === batchId && Array.isArray(parsedBatch.inputs)) {
         batch = parsedBatch;
       } else {
